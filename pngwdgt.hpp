@@ -518,101 +518,101 @@ class MLP {
 		}
 };
 
-class A2B {
+class LinearMap1D {
 
 	public:
 
-		A2B( double p_a0 = 0., double p_a1 = 1., double p_b0 = -1., double p_b1 = +1. ) :
-		a0( p_a0 ),
-		a1( p_a1 ),
-		b0( p_b0 ),
-		b1( p_b1 ),
-		aByB( ( a1 - a0 ) / ( b1 - b0 ) ),
-		bByA( ( b1 - b0 ) / ( a1 - a0 ) ) {
+		LinearMap1D( double p_xMin = 0., double p_xMax = 1., double p_yMin = -1., double p_yMax = +1. ) :
+		xMin( p_xMin  ),
+		xMax( p_xMax ),
+		yMin( p_yMin ),
+		yMax( p_yMax ),
+		xDividedByY( ( xMax - xMin ) / ( yMax - yMin ) ),
+		yDividedByX( ( yMax - yMin ) / ( xMax - xMin ) ) {
 
 		}
 
 	public:
 
 		double
-		a0, a1,
-		b0, b1;
+		xMin, xMax,
+		yMin, yMax;
 
 	private:
 
 		double
-		aByB,
-		bByA;
+		xDividedByY,
+		yDividedByX;
 
 	public:
 
 		double
-		a2B( double const & p_a ) const {
+		x2y( double const & p_x ) const {
 
-			return b0 + ( p_a - a0 ) * bByA;
+			return yMin + ( p_x - xMin ) * yDividedByX;
 		}
 
 		double
-		b2A( double const & p_b ) const {
+		y2x( double const & p_y ) const {
 
-			return a0 + ( p_b - b0 ) * aByB;
+			return xMin + ( p_y - yMin ) * xDividedByY;
 		}
 
 		double
-		dstA2B( double const & p_a0, double const & p_a1 ) const {
+		xDistance( double const & p_xMin, double const & p_XMax ) const {
 
-			return ( p_a1 - p_a0 ) * bByA;
+			return ( p_XMax - p_xMin ) * yDividedByX;
 		}
 
 		double
-		dstB2A( double const & p_b0, double const & p_b1 ) const {
+		yDistance( double const & p_yMin, double const & p_yMax ) const {
 
-			return a0 + ( p_b1 - p_b0 ) * aByB;
+			return xMin + ( p_yMax - p_yMin ) * xDividedByY;
 		}
 
 		double
-		lenA2B( double const & p_a ) const {
+		xLength( double const p_x ) const {
 
-			return p_a * bByA;
+			return p_x * yDividedByX;
 		}
 
 		double
-		lenB2A( double const & p_b ) const {
+		yLength( double const & p_y ) const {
 
-			return p_b * aByB;
+			return p_y * xDividedByY;
 		}
 
 		void
-		resetA( double const & p_a0, double const & p_a1 ) {
+		resetX( double const & p_xMin, double const & p_xMax ) {
 
-			a0 = p_a0;
-			a1 = p_a1;
-			aByB = ( a1 - a0 ) / ( b1 - b0 );
-			bByA = ( b1 - b0 ) / ( a1 - a0 );
+			xMin = p_xMin;
+			xMax = p_xMax;
+			xDividedByY = ( xMax - xMin ) / ( yMax - yMin );
+			yDividedByX = ( yMax - yMin ) / ( xMax - xMin );
 		}
 
 		void
-		resetB( double const & p_b0, double const & p_b1 ) {
+		resetY( double const & p_yMin, double const & p_yMax ) {
 
-			b0 = p_b0;
-			b1 = p_b1;
-			aByB = ( a1 - a0 ) / ( b1 - b0 );
-			bByA = ( b1 - b0 ) / ( a1 - a0 );
+			yMin = p_yMin;
+			yMax = p_yMax;
+			xDividedByY = ( xMax - xMin ) / ( yMax - yMin );
+			yDividedByX = ( yMax - yMin ) / ( xMax - xMin );
 		}
 
 		void
-		reset( double const & p_a0, double const & p_a1, double const & p_b0, double const & p_b1 ) {
+		reset( double const & p_xMin, double const & p_xMax, double const & p_yMin, double const & p_yMax ) {
 
-			resetA( p_a0, p_a1 );
-			resetB( p_b0, p_b1 );
+			resetX( p_xMin, p_xMax );
+			resetY( p_yMin, p_yMax );
 		}
 };
 
-class UV2ST {
+class LinearMap2D {
 
 	public:
 
-		UV2ST( A2B const & p_u2s, A2B const & p_v2t ) :
+		LinearMap2D( LinearMap1D const & p_u2s, LinearMap1D const & p_v2t ) :
 		u2s( p_u2s ),
 		v2t( p_v2t ) {
 
@@ -620,7 +620,7 @@ class UV2ST {
 
 	public:
 
-		A2B
+		LinearMap1D
 		u2s,
 		v2t;
 };
@@ -644,7 +644,7 @@ public QWidget {
 
 	private:
 
-		UV2ST
+		LinearMap2D
 		arena2painter;
 
 	public:
@@ -665,14 +665,62 @@ public QWidget {
 		scoreLeft,
 		scoreRight;
 
+		std::size_t
+		numOfNeuronsForPosition,
+		numOfNeuronsForView,
+		numOfMemLayers;
+
+		std::vector< double >
+		pos,
+		angle;
+
 		MLP
 		mlp;
 
-		void
-		drawSevenSegementDisplaySegment( QPainter & p_painter, const QRectF & p_rect, unsigned char p_segment, const QColor & p_color );
+		int
+		direction;
+
+		double
+		pix,
+		racketHeight;
+
+		int
+		colOffR,
+		colOffG,
+		colOffB;
+
+		QPainter
+		* painter;
 
 		void
-		drawSevenSegementDisplay ( QPainter & p_painter, QRectF const & p_rect, unsigned char p_digit, const QColor & p_color );
+		drawSevenSegementDisplaySegment( const QRectF & p_rect, unsigned char p_segment, const QColor & p_color );
+
+		void
+		drawSevenSegementDisplay ( QRectF const & p_rect, unsigned char p_digit, const QColor & p_color );
+
+		void
+		drawMemory( );
+
+		void
+		drawPos( );
+
+		void
+		drawArena( );
+
+		void
+		drawBall( );
+
+		void
+		drawRackets( );
+
+		void
+		drawOutput( );
+
+		void
+		updateLeftRacketPos( );
+
+		void
+		refreshView( );
 
 		void
 		keyReleaseEvent( QKeyEvent * p_keyEvent );

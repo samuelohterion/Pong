@@ -1,33 +1,18 @@
 #include "pngwdgt.hpp"
 #include <QApplication>
 
-#include "../AlgebraWithSTL/algebra.hpp"
+//#include "../AlgebraWithSTL/algebra.hpp"
 
 int
-main( int argc, char * argv[ ] ) {
-
-/*
-	double
-	val = -3.00000;
-
-	std::vector< double >
-	bits = MLP::digitize( val, -3, 3, 16 );
-
-	print( "bits", bits );
-
-	val = MLP::analogize( bits, 0, 1 );
-
-	print( "val", val );
-
-	return 0;
-*/
+main( int p_argc, char * p_argv[ ] ) {
 
 	QApplication
-	a( argc, argv );
+	app( p_argc, p_argv );
 
-	PngWdgt w;
+	PngWdgt
+	wdgt;
 
-	w.show( );
+	wdgt.show( );
 
-	return a.exec();
+	return app.exec( );
 }
