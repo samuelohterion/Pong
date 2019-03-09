@@ -422,15 +422,24 @@ PngWdgt::refreshView( ) {
 	ballTopY = ball.y( ) - plyr.y( ) - 15 * pix,
 	ballBtmY = ball.y( ) - plyr.y( ) + 15 * pix;
 
+	std::size_t
+	rowWidth = ( numOfNeuronsForView + numOfNeuronsForPosition );
+
+	for( std::size_t i = numOfMemLayers * rowWidth - 1; rowWidth <= i; -- i ) {
+
+		angle[ i - rowWidth ] = angle[ i ];
+	}
+
+
 	// reverse!
-	std::copy(
-		angle.crbegin( ),
-		angle.crbegin( ) + static_cast< int >( ( numOfMemLayers - 1 ) * ( numOfNeuronsForView + numOfNeuronsForPosition ) ),
-		angle.rbegin( ) + static_cast< int >( numOfNeuronsForView + numOfNeuronsForPosition ) );
+//	std::copy(
+//		angle.crbegin( ),
+//		angle.crbegin( ) + static_cast< int >( ( numOfMemLayers - 1 ) * ( numOfNeuronsForView + numOfNeuronsForPosition ) ),
+//		angle.rbegin( ) + static_cast< int >( numOfNeuronsForView + numOfNeuronsForPosition ) );
 
 	std::fill(
 		angle.begin( ),
-		angle.end( ) + static_cast< int >( numOfNeuronsForView + numOfNeuronsForPosition ),
+		angle.end( ) + static_cast< int >( rowWidth ),
 		0. );
 
 	std::size_t
@@ -472,7 +481,7 @@ PngWdgt::paintEvent( QPaintEvent * p_paintEvent ) {
 			mlp.norm( );
 		}
 
-		pos[ clamp< std::size_t >( static_cast< std::size_t >( ( numOfNeuronsForPosition - 1 ) * ( plyrRight.y( ) + 3. ) / 6. ), 0, ( numOfNeuronsForPosition- 1 ) ) ] = 1.;
+		pos[ clamp< std::size_t >( static_cast< std::size_t >( ( numOfNeuronsForPosition - 1 ) * ( plyrRight.y( ) + 3. ) / 6. ), 0, ( numOfNeuronsForPosition - 1 ) ) ] = 1.;
 
 		refreshView( );
 
