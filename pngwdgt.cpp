@@ -1,5 +1,6 @@
 #include "pngwdgt.hpp"
 #include "ui_pngwdgt.h"
+#include "../AlgebraWithSTL/algebra.hpp"
 
 template< typename T >
 T
@@ -12,18 +13,20 @@ PngWdgt::PngWdgt( QWidget * parent ) :
 QWidget( parent ),
 ui( new Ui::PngWdgt ),
 arena2painter( LinearMap1D( -4., +4., 0., 400. ), LinearMap1D( -3., +3., 0., 300. ) ),
+pastTime( 0 ),
+pastPos( 0 ),
 ball( 0,0 ),
-ballV( 0.03, 0.01 ),
+ballV( 0.04, 0.015 ),
 plyrLeft( -3., 0. ),
 plyrRight( +3., 0. ),
 scoreLeft( 0 ),
 scoreRight( 0 ),
-numOfNeuronsForPosition( 37 ),
-numOfNeuronsForView( 37 ),
+numOfNeuronsForRacketPos( 17 ),
+numOfNeuronsForBallPosAngle( 17 ),
 numOfMemLayers( 5 ),
-pos( numOfNeuronsForPosition, 0. ),
-angle( numOfMemLayers * ( numOfNeuronsForPosition + numOfNeuronsForView ), 0. ),
-mlp( { angle.size( ), 17, pos.size( ) }, 1., 0., 1. ),
+teacher( 1, 0. ),
+patternRacketPosAndBallsPosAngle( numOfMemLayers * ( numOfNeuronsForRacketPos + numOfNeuronsForBallPosAngle ), 0. ),
+mlp( { patternRacketPosAndBallsPosAngle.size( ), 25, 15, teacher.size( ) }, .5, -1, 1. ),
 direction( 0 ),
 pix( 1. / 30. ),
 racketHeight( 5. ) {
@@ -259,36 +262,26 @@ PngWdgt::drawSevenSegementDisplay ( QRectF const & p_rect, unsigned char p_digit
 }
 
 void
-PngWdgt::drawMemory( ) {
+PngWdgt::drawPattern( ) {
+
+	std::size_t
+	rowWidth = numOfNeuronsForBallPosAngle + numOfNeuronsForRacketPos;
 
 	for( std::size_t lyr = 0; lyr < numOfMemLayers; ++ lyr ) {
 
-		for( std::size_t i = 0; i < numOfNeuronsForView; ++ i ) {
+		for( std::size_t i = 0; i < rowWidth; ++ i ) {
 
 			int
-			col = int( 0xff * angle[ lyr * ( numOfNeuronsForView + numOfNeuronsForPosition ) + i ] ) & 0xff;
+			col =
+				i < ( rowWidth >> 1 )
+					? int( 0x10 + 0xef * patternRacketPosAndBallsPosAngle[ lyr * rowWidth + i ] ) & 0xff
+					: int( 0x10 + 0xef * patternRacketPosAndBallsPosAngle[ lyr * rowWidth + i ] ) & 0xff;
 
 			QColor
-			cl( col, col,  col );
+			cl( col, col, col );
 
 			painter->fillRect(
-				arena2painter.u2s.x2y( .9 * ( -4. + 4. * i / ( numOfNeuronsForView - 1 ) ) - pix ),
-				arena2painter.v2t.x2y( +2.0 + lyr * ( 2.2 * pix ) ),
-				arena2painter.u2s.xLength( 2. * pix ),
-				arena2painter.v2t.xLength( 2. * pix ),
-				cl );
-		}
-
-		for( std::size_t i = 0; i < numOfNeuronsForPosition; ++ i ) {
-
-			int
-			col = int( 0xff * angle[ lyr * ( numOfNeuronsForView + numOfNeuronsForPosition ) + numOfNeuronsForView + i ] ) & 0xff;
-
-			QColor
-			cl( col, col,  col );
-
-			painter->fillRect(
-				arena2painter.u2s.x2y( .9 * ( +0. + 4. * i / ( numOfNeuronsForPosition - 1 ) ) - pix ),
+				arena2painter.u2s.x2y( .9 * ( -4. + 8. * i / ( rowWidth - 1 ) ) - pix ),
 				arena2painter.v2t.x2y( +2.0 + lyr * ( 2.2 * pix ) ),
 				arena2painter.u2s.xLength( 2. * pix ),
 				arena2painter.v2t.xLength( 2. * pix ),
@@ -300,18 +293,18 @@ PngWdgt::drawMemory( ) {
 void
 PngWdgt::drawPos( ) {
 
-	for( std::size_t i = 0; i < pos.size( ); ++ i ) {
+	for( std::size_t i = 0; i < teacher.size( ); ++ i ) {
 
 		int
-		colR = int( colOffR * pos[ i ] ) & 0xff,
-		colG = int( colOffR * pos[ i ] ) & 0xff,
-		colB = int( colOffR * pos[ i ] ) & 0xff;
+		colR = int( colOffR * teacher[ i ] ) & 0xff,
+		colG = int( colOffG * teacher[ i ] ) & 0xff,
+		colB = int( colOffB * teacher[ i ] ) & 0xff;
 
 		QColor
-		cl( colR, colG,  colB );
+		cl( colR, colG, colB );
 
 		painter->fillRect(
-			arena2painter.u2s.x2y( .9 * ( -4. + 8. * i / ( pos.size( ) - 1 ) ) - pix ),
+			arena2painter.u2s.x2y( .9 * ( -4. + 8. * i / ( teacher.size( ) - 1 ) ) - pix ),
 			arena2painter.v2t.x2y( +1.4 - pix ),
 			arena2painter.u2s.xLength( 2. * pix ),
 			arena2painter.v2t.xLength( 2. * pix ),
@@ -351,35 +344,79 @@ PngWdgt::drawRackets( ) {
 void
 PngWdgt::drawOutput( ) {
 
-	for( std::size_t i = 0; i < numOfNeuronsForPosition; ++ i ) {
+	for( std::size_t i = 0; i < numOfNeuronsForRacketPos; ++ i ) {
+
+		double
+		o = mlp.output( i ),
+		d = ballV.x( ) < 0 ? -1 : +1;
 
 		painter->fillRect(
-			static_cast< int >( arena2painter.u2s.x2y( .9 * ( -4. + 8. * i / 36. ) - pix ) ),
-			static_cast< int >( arena2painter.v2t.x2y( 2.4 - pix ) ),
+			static_cast< int >( arena2painter.u2s.x2y( d * 4.2 - pix ) ),
+			static_cast< int >( arena2painter.v2t.x2y( .9 * ( -3. + 6. * i / ( numOfNeuronsForRacketPos - 1. ) ) - pix ) ),
 			static_cast< int >( arena2painter.u2s.xLength( 2. * pix ) ),
 			static_cast< int >( arena2painter.v2t.xLength( 2. * pix ) ),
-			QColor( int( 0xff * mlp.output( i ) ) & 0xff, int( 0xff * mlp.output( i ) ) & 0xff, int( 0xff * mlp.output( i ) ) & 0xff ) );
+			QColor( int( 0xff * o ) & 0xff, int( 0xff * o ) & 0xff, ( 0xff - int( 0xff * o ) ) & 0xff ) );
+
+		o = clamp< double >( teacher[ i ], 0, 1 );
+
+		painter->fillRect(
+			static_cast< int >( arena2painter.u2s.x2y( d * 4.1 - pix ) ),
+			static_cast< int >( arena2painter.v2t.x2y( .9 * ( -3. + 6. * i / ( numOfNeuronsForRacketPos - 1. ) ) - pix ) ),
+			static_cast< int >( arena2painter.u2s.xLength( 2. * pix ) ),
+			static_cast< int >( arena2painter.v2t.xLength( 2. * pix ) ),
+			QColor( int( 0xff - 0xff * o ) & 0xff, ( int( 0xff * o ) ) & 0xff, 0x00 ) );
 	}
 }
+
+/*
+void
+PngWdgt::updateLeftRacketPos( ) {
+
+	mlp.remember( patternRacketPosAndBallsPosAngle );
+
+	std::size_t
+	id = 0;
+
+	double
+	max = mlp.output( id );
+
+	for( std::size_t i = 1; i < numOfNeuronsForRacketPos; ++ i ) {
+
+		double
+		outp = mlp.output( i );
+
+		if( max < outp ) {
+
+			max = outp;
+			id  = i;
+		}
+	}
+
+	double
+	pos = id / ( numOfNeuronsForRacketPos - 1 );
+
+	std::cout << -3 + 6. * pos << std::endl;
+
+	plyrLeft.ry( ) = -3 + 6. * clamp< double >( pos, 0., 1. );
+}
+*/
 
 void
 PngWdgt::updateLeftRacketPos( ) {
 
-	mlp.remember( angle );
+	mlp.remember( patternRacketPosAndBallsPosAngle );
 
 	double
-	sum = 0,
-	nrm = 0;
+	pos = plyrLeft.y( ) / 3.,
+	vel = clamp< double >( mlp.output( 0 ), -1., +1. );
 
-	for( std::size_t i = 0; i < numOfNeuronsForPosition; ++ i ) {
+	pos += vel * yT.mean( );
 
-		sum += i * mlp.output( i );
-		nrm += mlp.output( i );
-	}
+	std::cout << "pos: " << pos << std::endl;
 
-	std::cout << -3 + 6. * sum / ( 36. * nrm ) << std::endl;
+	plyrLeft.ry( ) = 3. * clamp< double >( pos, -1., +1. );
 
-	plyrLeft.ry( ) = -3 + 6. * sum / ( 36. * nrm );
+	teacher[ 0 ] = vel;
 }
 
 void
@@ -423,37 +460,94 @@ PngWdgt::refreshView( ) {
 	ballBtmY = ball.y( ) - plyr.y( ) + 15 * pix;
 
 	std::size_t
-	rowWidth = ( numOfNeuronsForView + numOfNeuronsForPosition );
+	rowWidth = ( numOfNeuronsForBallPosAngle + numOfNeuronsForRacketPos );
 
-	for( std::size_t i = numOfMemLayers * rowWidth - 1; rowWidth <= i; -- i ) {
+	for( std::size_t lyr = numOfMemLayers - 1; 0 < lyr; -- lyr ) {
 
-		angle[ i - rowWidth ] = angle[ i ];
+		for( std::size_t i = 0; i < numOfNeuronsForRacketPos; ++ i ) {
+
+			if( i == 0 ) {
+
+				patternRacketPosAndBallsPosAngle[ ( lyr - 0 ) * rowWidth + i ] =
+					.666 * patternRacketPosAndBallsPosAngle[ ( lyr - 1 ) * rowWidth + i     ] +
+					.333 * patternRacketPosAndBallsPosAngle[ ( lyr - 1 ) * rowWidth + i + 1 ];
+			}
+			else {
+
+				if( numOfNeuronsForRacketPos - 1 == i ) {
+
+					patternRacketPosAndBallsPosAngle[ ( lyr - 0 ) * rowWidth + i ] = (
+						.666 * patternRacketPosAndBallsPosAngle[ ( lyr - 1 ) * rowWidth + i     ] +
+						.333 * patternRacketPosAndBallsPosAngle[ ( lyr - 1 ) * rowWidth + i - 1 ] );
+				}
+				else {
+
+					patternRacketPosAndBallsPosAngle[ ( lyr - 0 ) * rowWidth + i ] = (
+						.25 * patternRacketPosAndBallsPosAngle[ ( lyr - 1 ) * rowWidth + i - 1 ] +
+						.50 * patternRacketPosAndBallsPosAngle[ ( lyr - 1 ) * rowWidth + i + 0 ] +
+						.25 * patternRacketPosAndBallsPosAngle[ ( lyr - 1 ) * rowWidth + i + 1 ] );
+				}
+			}
+		}
+
+		for( std::size_t i = 0; i < numOfNeuronsForBallPosAngle; ++ i ) {
+
+			std::size_t
+			j = i + numOfNeuronsForRacketPos;
+
+			if( i == 0 ) {
+
+				patternRacketPosAndBallsPosAngle[ ( lyr - 0 ) * rowWidth + j ] =
+					.666 * patternRacketPosAndBallsPosAngle[ ( lyr - 1 ) * rowWidth + j     ] +
+					.333 * patternRacketPosAndBallsPosAngle[ ( lyr - 1 ) * rowWidth + j + 1 ];
+			}
+			else {
+
+				if( i == numOfNeuronsForRacketPos - 1 ) {
+
+					patternRacketPosAndBallsPosAngle[ ( lyr - 0 ) * rowWidth + j ] = (
+						.666 * patternRacketPosAndBallsPosAngle[ ( lyr - 1 ) * rowWidth + j     ] +
+						.333 * patternRacketPosAndBallsPosAngle[ ( lyr - 1 ) * rowWidth + j - 1 ] );
+				}
+				else {
+
+					patternRacketPosAndBallsPosAngle[ ( lyr - 0 ) * rowWidth + j ] = (
+						.25 * patternRacketPosAndBallsPosAngle[ ( lyr - 1 ) * rowWidth + j - 1 ] +
+						.50 * patternRacketPosAndBallsPosAngle[ ( lyr - 1 ) * rowWidth + j + 0 ] +
+						.25 * patternRacketPosAndBallsPosAngle[ ( lyr - 1 ) * rowWidth + j + 1 ] );
+				}
+			}
+		}
 	}
 
+	if( 0 < dir ) {
 
-	// reverse!
-//	std::copy(
-//		angle.crbegin( ),
-//		angle.crbegin( ) + static_cast< int >( ( numOfMemLayers - 1 ) * ( numOfNeuronsForView + numOfNeuronsForPosition ) ),
-//		angle.rbegin( ) + static_cast< int >( numOfNeuronsForView + numOfNeuronsForPosition ) );
+		std::fill( teacher.begin( ), teacher.end( ), 0 );
+
+		teacher[ clamp< std::size_t >( static_cast< std::size_t >( ( numOfNeuronsForRacketPos - 1 ) * ( plyr.y( ) + 3. ) / 6. ), 0, ( numOfNeuronsForRacketPos - 1 ) ) ] = 1.;
+	}
+	else {
+
+		updateLeftRacketPos( );
+		std::fill( teacher.begin( ), teacher.end( ), 0 );
+		teacher[ clamp< std::size_t >( static_cast< std::size_t >( ( numOfNeuronsForRacketPos - 1 ) * ( plyrLeft.y( ) + 3. ) / 6. ), 0, ( numOfNeuronsForRacketPos - 1 ) ) ] = 1.;
+	}
 
 	std::fill(
-		angle.begin( ),
-		angle.end( ) + static_cast< int >( rowWidth ),
+		patternRacketPosAndBallsPosAngle.begin( ),
+		patternRacketPosAndBallsPosAngle.begin( ) + static_cast< int >( rowWidth ),
 		0. );
 
 	std::size_t
-	alphaL = clamp< std::size_t >( static_cast< std::size_t >( ( ( numOfNeuronsForView - 1 ) * atan2( - dir * ballCentre.x( ), ballTopY )        / M_PI ) ), 0, ( numOfNeuronsForView - 1 ) ),
-	alphaM = clamp< std::size_t >( static_cast< std::size_t >( ( ( numOfNeuronsForView - 1 ) * atan2( - dir * ballCentre.x( ), ballCentre.y( ) ) / M_PI ) ), 0, ( numOfNeuronsForView - 1 ) ),
-	alphaR = clamp< std::size_t >( static_cast< std::size_t >( ( ( numOfNeuronsForView - 1 ) * atan2( - dir * ballCentre.x( ), ballBtmY )        / M_PI ) ), 0, ( numOfNeuronsForView - 1 ) );
+	alphaL = clamp< std::size_t >( static_cast< std::size_t >( ( ( numOfNeuronsForBallPosAngle - 1 ) * atan2( - dir * ballCentre.x( ), ballTopY )        / M_PI ) ), 0, ( numOfNeuronsForBallPosAngle - 1 ) ),
+	alphaM = clamp< std::size_t >( static_cast< std::size_t >( ( ( numOfNeuronsForBallPosAngle - 1 ) * atan2( - dir * ballCentre.x( ), ballCentre.y( ) ) / M_PI ) ), 0, ( numOfNeuronsForBallPosAngle - 1 ) ),
+	alphaR = clamp< std::size_t >( static_cast< std::size_t >( ( ( numOfNeuronsForBallPosAngle - 1 ) * atan2( - dir * ballCentre.x( ), ballBtmY )        / M_PI ) ), 0, ( numOfNeuronsForBallPosAngle - 1 ) );
 
-	angle[ alphaL ] = 1.;
-	angle[ alphaM ] = 1.;
-	angle[ alphaR ] = 1.;
+	patternRacketPosAndBallsPosAngle[ alphaL ] = 1.;
+	patternRacketPosAndBallsPosAngle[ alphaM ] = 1.;
+	patternRacketPosAndBallsPosAngle[ alphaR ] = 1.;
 
-	//pos[ clamp< std::size_t >( static_cast< std::size_t >( ( numOfNeuronsForView - 1 ) * ( plyr.y( ) + 3. ) / 6. ), 0, ( numOfNeuronsForView - 1 ) ) ] = 1.;
-
-	std::copy( pos.cbegin( ), pos.cend( ), angle.begin( ) + numOfNeuronsForView );
+	//std::copy( teacherPositionOfRacket.cbegin( ), teacherPositionOfRacket.cend( ), patternRacketPosAndBallsPosAngle.begin( ) + numOfNeuronsForBallPosAngle );
 }
 
 void
@@ -481,22 +575,28 @@ PngWdgt::paintEvent( QPaintEvent * p_paintEvent ) {
 			mlp.norm( );
 		}
 
-		pos[ clamp< std::size_t >( static_cast< std::size_t >( ( numOfNeuronsForPosition - 1 ) * ( plyrRight.y( ) + 3. ) / 6. ), 0, ( numOfNeuronsForPosition - 1 ) ) ] = 1.;
-
 		refreshView( );
 
-		mlp.remember( angle );
-		mlp.teach( pos );
+		mlp.remember( patternRacketPosAndBallsPosAngle );
 
-		drawMemory( );
+		if( teach ) {
+
+			mlp.teach( teacher );
+
+			teach = false;
+		}
+
+		drawPattern( );
+
+		drawOutput( );
 	}
 	else {
 
 		refreshView( );
 
-		updateLeftRacketPos( );
+		mlp.remember( patternRacketPosAndBallsPosAngle );
 
-		drawMemory( );
+		drawPattern( );
 
 		drawOutput( );
 	}
@@ -560,6 +660,25 @@ void
 PngWdgt::mouseMoveEvent( QMouseEvent * p_mouseEvent ) {
 
 	plyrRight.ry( ) = arena2painter.v2t.y2x( p_mouseEvent->y( ) );
+
+	int
+	te = time.elapsed( ),
+	dT = te - pastTime;
+	pastTime = te;
+
+	double
+	dP = plyrRight.y( ) - pastPos;
+
+	yT.push( dT );
+	yPos.push( dP );
+
+	double
+	meanYPos = yPos.mean( ),
+	meanTime = yT.mean( );
+
+	teacher[ 0 ] = meanYPos / meanTime;
+
+	teach = true;
 }
 
 void
@@ -587,13 +706,25 @@ PngWdgt::resizeEvent( QResizeEvent * p_resizeEvent ) {
 void
 PngWdgt::keyReleaseEvent( QKeyEvent * p_keyEvent ) {
 
-	if( p_keyEvent->key() == Qt::Key_Escape || p_keyEvent->key() == Qt::Key_Q )
+	if( p_keyEvent->key() == Qt::Key_Escape || p_keyEvent->key() == Qt::Key_Q ) {
 
 		this->close( );
+	}
 
-	if( p_keyEvent->key() == Qt::Key_F )
+	if( p_keyEvent->key() == Qt::Key_F ) {
 
 		this->setWindowState( windowState( ) ^ Qt::WindowFullScreen );
+	}
+
+	if( p_keyEvent->key() == Qt::Key_S ) {
+
+		save( "brain.dat", mlp.w );
+	}
+
+	if( p_keyEvent->key() == Qt::Key_L ) {
+
+		load( "brain.dat", mlp.w );
+	}
 }
 
 void

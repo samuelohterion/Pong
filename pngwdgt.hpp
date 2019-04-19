@@ -7,9 +7,11 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <queue>
 
 #include <QSound>
 #include <QWidget>
+#include <QCloseEvent>
 #include <QPaintEvent>
 #include <QPainter>
 #include <QTime>
@@ -625,6 +627,80 @@ class LinearMap2D {
 		v2t;
 };
 
+template < typename T, std::size_t S >
+class Buffer {
+
+	public:
+
+		Buffer( ) :
+		in( x ),
+		cnt( 0 ) {
+
+		}
+
+	public:
+
+		T
+		x[ S ];
+
+		T
+		* in;
+
+	private:
+
+		std::size_t
+		cnt;
+
+	public:
+
+		void
+		clear( ) {
+
+			in  = x;
+			cnt = 0;
+		}
+
+		bool
+		count( ) const {
+
+			return cnt < S ? cnt : S;
+		}
+
+		T
+		mean( ) const {
+
+			return cnt == 0 ? 0 : sum( ) / count( );
+		}
+
+		void
+		push( T const & p_value ) {
+
+			* in = p_value;
+
+			if( x + S <= ++ in ) {
+
+				in = x;
+			}
+
+			++ cnt;
+		}
+
+		T
+		sum( ) const {
+
+			T
+			s = 0;
+
+			for( T const * it = x; it != x + S; ++ it ) {
+
+				s += * it;
+			}
+
+			return s;
+		}
+
+};
+
 class PngWdgt :
 public QWidget {
 
@@ -652,6 +728,12 @@ public QWidget {
 		QTime
 		time;
 
+		int
+		pastTime;
+
+		double
+		pastPos;
+
 		QTimer
 		timer;
 
@@ -661,18 +743,22 @@ public QWidget {
 		plyrLeft,
 		plyrRight;
 
+		Buffer< double, 3 >
+		yPos,
+		yT;
+
 		unsigned char
 		scoreLeft,
 		scoreRight;
 
 		std::size_t
-		numOfNeuronsForPosition,
-		numOfNeuronsForView,
+		numOfNeuronsForRacketPos,
+		numOfNeuronsForBallPosAngle,
 		numOfMemLayers;
 
 		std::vector< double >
-		pos,
-		angle;
+		teacher,
+		patternRacketPosAndBallsPosAngle;
 
 		MLP
 		mlp;
@@ -692,6 +778,9 @@ public QWidget {
 		QPainter
 		* painter;
 
+		bool
+		teach;
+
 		void
 		drawSevenSegementDisplaySegment( const QRectF & p_rect, unsigned char p_segment, const QColor & p_color );
 
@@ -699,7 +788,7 @@ public QWidget {
 		drawSevenSegementDisplay ( QRectF const & p_rect, unsigned char p_digit, const QColor & p_color );
 
 		void
-		drawMemory( );
+		drawPattern( );
 
 		void
 		drawPos( );

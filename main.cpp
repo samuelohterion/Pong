@@ -12,6 +12,7 @@ main( int p_argc, char * p_argv[ ] ) {
 	PngWdgt
 	wdgt;
 
+
 	wdgt.show( );
 
 	return app.exec( );
