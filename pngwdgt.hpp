@@ -728,11 +728,12 @@ public QWidget {
 		QTime
 		time;
 
-		int
-		pastTime;
-
 		double
-		pastPos;
+		rightRacketPos[ 3 ],
+		rightRacketVel[ 2 ],
+		rightRacketAcc[ 1 ],
+		leftRacketPos,
+		leftRacketVel;
 
 		QTimer
 		timer;
@@ -743,34 +744,23 @@ public QWidget {
 		plyrLeft,
 		plyrRight;
 
-		Buffer< double, 3 >
-		yPos,
-		yT;
-
 		unsigned char
 		scoreLeft,
 		scoreRight;
 
-		std::size_t
-		numOfNeuronsForRacketPos,
-		numOfNeuronsForBallPosAngle,
-		numOfMemLayers;
-
 		std::vector< double >
 		teacher,
-		patternRacketPosAndBallsPosAngle;
+		patternRacketPosAndBallsPosVel;
 
 		MLP
 		mlp;
-
-		int
-		direction;
 
 		double
 		pix,
 		racketHeight;
 
 		int
+		direction,
 		colOffR,
 		colOffG,
 		colOffB;
@@ -823,7 +813,10 @@ public QWidget {
 		void
 		resizeEvent( QResizeEvent * p_resizeEvent );
 
-	public slots:
+		void
+		drawTeacher( );
+
+		public slots:
 
 		void
 		slotTimerEvent( );
