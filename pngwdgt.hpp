@@ -701,6 +701,111 @@ class Buffer {
 
 };
 
+class PhysRecord {
+
+	public:
+
+		PhysRecord( double const & p_pos = 0., double const & p_vel = 0., double const & p_acc = 0., double const & p_reciprocalDeltaTime = 1. / 2. ) :
+		r0( p_pos ),
+		r1( p_pos ),
+		r2( p_pos ),
+		v0( p_vel ),
+		v1( p_vel ),
+		a0( p_acc ),
+		rdt( p_reciprocalDeltaTime ) {
+
+		}
+
+	public:
+
+		double
+		r0,r1,r2,
+		v0,v1,
+		a0,
+		rdt;
+
+	public:
+
+		void
+		newR( double const & p_r ) {
+
+			r2 = r1;
+			r1 = r0;
+			r0 = p_r;
+
+			v0 = rdt * ( r0 - r1 );
+			v1 = rdt * ( r1 - r2 );
+
+			a0 = rdt * ( v0 - v1 );
+		}
+
+		void
+		reset( double const & p_r = 0., double const & p_v = 0., double const & p_a = 0. ) {
+
+			r2 = r1 = r0 = p_r;
+
+			v1 = v0 = p_v;
+
+			a0 = p_a;
+		}
+
+		void
+		setReciprocalDeltaTime( double const & p_reciprocalDeltaTime = 1. / 2. ) {
+
+			rdt = p_reciprocalDeltaTime;
+		}
+};
+
+class PhysReproduce {
+
+	public:
+
+		PhysReproduce( double const & p_acc = 0., double const & p_vel = 0., double const & p_r = 0., double const & p_deltaTime = 2. ) :
+		a( p_acc ),
+		v( p_vel ),
+		r( p_r ),
+		dt( p_deltaTime ) {
+
+		}
+
+	public:
+
+		double
+		a,
+		v,
+		r,
+		dt;
+
+	public:
+
+		void
+		newAcc( double const & p_a ) {
+
+			a = p_a;
+
+			v += dt * a;
+
+			r += dt * v;
+		}
+
+		void
+		reset( double const & p_a = 0., double const & p_v = 0., double const & p_r = 0. ) {
+
+			a = p_a;
+
+			v = p_v;
+
+			r = p_r;
+		}
+
+		void
+		setDeltaTime( double const & p_deltaTime = 2. ) {
+
+			dt = p_deltaTime;
+		}
+};
+
+
 class PngWdgt :
 public QWidget {
 
@@ -728,12 +833,11 @@ public QWidget {
 		QTime
 		time;
 
-		double
-		rightRacketPos[ 3 ],
-		rightRacketVel[ 2 ],
-		rightRacketAcc[ 1 ],
-		leftRacketPos,
-		leftRacketVel;
+		PhysRecord
+		rightPad;
+
+		PhysReproduce
+		leftPad;
 
 		QTimer
 		timer;
@@ -750,7 +854,7 @@ public QWidget {
 
 		std::vector< double >
 		teacher,
-		patternRacketPosAndBallsPosVel;
+		patternRPyVyBPxyVxy;
 
 		MLP
 		mlp;
@@ -816,7 +920,13 @@ public QWidget {
 		void
 		drawTeacher( );
 
-		public slots:
+		void
+		drawTeachersBase( );
+
+		void
+		drawLeftRacketPhysics( );
+
+	public slots:
 
 		void
 		slotTimerEvent( );

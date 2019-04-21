@@ -20,8 +20,8 @@ plyrRight( +3., 0. ),
 scoreLeft( 0 ),
 scoreRight( 0 ),
 teacher( 1, 0. ),
-patternRacketPosAndBallsPosVel( 5, 0. ),
-mlp( { patternRacketPosAndBallsPosVel.size( ), 5, 5, teacher.size( ) }, .1, -1, 1. ),
+patternRPyVyBPxyVxy( 6, 0. ),
+mlp( { patternRPyVyBPxyVxy.size( ), 31, 17, teacher.size( ) }, .5, -1, 1. ),
 pix( 1. / 30. ),
 racketHeight( 5. ),
 direction( 0 ) {
@@ -260,25 +260,26 @@ void
 PngWdgt::drawPattern( ) {
 
 	double
-	rY = patternRacketPosAndBallsPosVel[ 0 ],
-	bX = patternRacketPosAndBallsPosVel[ 1 ],
-	bY = patternRacketPosAndBallsPosVel[ 2 ],
-	bVX = patternRacketPosAndBallsPosVel[ 3 ],
-	bVY = patternRacketPosAndBallsPosVel[ 4 ];
+	rY  = patternRPyVyBPxyVxy[ 0 ],
+	rVY = patternRPyVyBPxyVxy[ 1 ],
+	bX  = patternRPyVyBPxyVxy[ 2 ],
+	bY  = patternRPyVyBPxyVxy[ 3 ],
+	bVX = patternRPyVyBPxyVxy[ 4 ],
+	bVY = patternRPyVyBPxyVxy[ 5 ];
 
-	painter->fillRect(
-		arena2painter.u2s.x2y( -3.8 - pix ),
-		arena2painter.v2t.x2y( 0. - pix ),
-		arena2painter.u2s.xLength( 2. * pix ),
-		arena2painter.v2t.xLength( 3. * rY + 2. * pix ),
-		QColor( 0x80, 0x80, 0x80 ) );
+//	painter->fillRect(
+//		arena2painter.u2s.x2y( direction * 3.4 ),
+//		arena2painter.v2t.x2y( 0. ),
+//		arena2painter.u2s.xLength( 2. * pix ),
+//		arena2painter.v2t.xLength( 3. * rY),
+//		QColor( 0x80, 0x80, 0x80 ) );
 
-	painter->fillRect(
-		arena2painter.u2s.x2y( -4.3 - pix ),
-		arena2painter.v2t.x2y( 0. - pix ),
-		arena2painter.u2s.xLength( 2. * pix ),
-		arena2painter.v2t.xLength( 3. * teacher[ 0 ] + 2. * pix ),
-		QColor( 0xff, 0x80, 0xff ) );
+//	painter->fillRect(
+//		arena2painter.u2s.x2y( direction * 3.4 - pix ),
+//		arena2painter.v2t.x2y( 0. ),
+//		arena2painter.u2s.xLength( 2. * pix ),
+//		arena2painter.v2t.xLength( 3. * rVY ),
+//		QColor( 0x80, 0x80, 0x80 ) );
 
 	painter->fillRect(
 		arena2painter.u2s.x2y( 4. * bX - pix ),
@@ -356,6 +357,130 @@ PngWdgt::drawTeacher( ) {
 		static_cast< int >( arena2painter.u2s.xLength( 4. * pix ) ),
 		static_cast< int >( arena2painter.v2t.xLength( 3. * o ) ),
 		QColor( int( 0xff * o ) & 0xff, ( 0xff - int( 0xff * o ) ) & 0xff, ( 0xff - int( 0xff * o ) ) & 0xff ) );
+}
+
+void
+PngWdgt::drawTeachersBase( ) {
+
+	int
+	i = 0;
+
+	double
+	o = rightRacketAcc[ 0 ];
+
+	painter->fillRect(
+		static_cast< int >( arena2painter.u2s.x2y( 4.4 + ++ i * 4 * pix ) ),
+		static_cast< int >( arena2painter.v2t.x2y( 0. ) ),
+		static_cast< int >( arena2painter.u2s.xLength( 3. * pix ) ),
+		static_cast< int >( arena2painter.v2t.xLength( 3. * o ) ),
+		QColor(
+			int( 0x4f * o ) & 0xff,
+			( 0xff - int( 0x4f * o ) ) & 0xff,
+			( 0xff - int( 0x4f * o ) ) & 0xff ) );
+
+	o = rightRacketVel[ 1 ];
+
+	painter->fillRect(
+		static_cast< int >( arena2painter.u2s.x2y( 4.4 + ++ i * 4 * pix ) ),
+		static_cast< int >( arena2painter.v2t.x2y( 0. ) ),
+		static_cast< int >( arena2painter.u2s.xLength( 3. * pix ) ),
+		static_cast< int >( arena2painter.v2t.xLength( 3. * o ) ),
+		QColor(
+			int( 0x4f * o ) & 0xff,
+			( 0xff - int( 0x4f * o ) ) & 0xff,
+			( 0xff - int( 0x4f * o ) ) & 0xff ) );
+
+	o = rightRacketVel[ 0 ];
+
+	painter->fillRect(
+		static_cast< int >( arena2painter.u2s.x2y( 4.4 + ++ i * 4 * pix ) ),
+		static_cast< int >( arena2painter.v2t.x2y( 0. ) ),
+		static_cast< int >( arena2painter.u2s.xLength( 3. * pix ) ),
+		static_cast< int >( arena2painter.v2t.xLength( 3. * o ) ),
+		QColor(
+			int( 0x4f * o ) & 0xff,
+			( 0xff - int( 0x4f * o ) ) & 0xff,
+			( 0xff - int( 0x4f * o ) ) & 0xff ) );
+
+	o = rightRacketPos[ 2 ];
+
+	painter->fillRect(
+		static_cast< int >( arena2painter.u2s.x2y( 4.4 + ++ i * 4 * pix ) ),
+		static_cast< int >( arena2painter.v2t.x2y( 0. ) ),
+		static_cast< int >( arena2painter.u2s.xLength( 3. * pix ) ),
+		static_cast< int >( arena2painter.v2t.xLength( 3. * o ) ),
+		QColor(
+			int( 0x4f * o ) & 0xff,
+			( 0xff - int( 0x4f * o ) ) & 0xff,
+			( 0xff - int( 0x4f * o ) ) & 0xff ) );
+
+	o = rightRacketPos[ 1 ];
+
+	painter->fillRect(
+		static_cast< int >( arena2painter.u2s.x2y( 4.4 + ++ i * 4 * pix ) ),
+		static_cast< int >( arena2painter.v2t.x2y( 0. ) ),
+		static_cast< int >( arena2painter.u2s.xLength( 3. * pix ) ),
+		static_cast< int >( arena2painter.v2t.xLength( 3. * o ) ),
+		QColor(
+			int( 0x4f * o ) & 0xff,
+			( 0xff - int( 0x4f * o ) ) & 0xff,
+			( 0xff - int( 0x4f * o ) ) & 0xff ) );
+
+	o = rightRacketPos[ 0 ];
+
+	painter->fillRect(
+		static_cast< int >( arena2painter.u2s.x2y( 4.4 + ++ i * 4 * pix ) ),
+		static_cast< int >( arena2painter.v2t.x2y( 0. ) ),
+		static_cast< int >( arena2painter.u2s.xLength( 3. * pix ) ),
+		static_cast< int >( arena2painter.v2t.xLength( 3. * o ) ),
+		QColor(
+			int( 0x4f * o ) & 0xff,
+			( 0xff - int( 0x4f * o ) ) & 0xff,
+			( 0xff - int( 0x4f * o ) ) & 0xff ) );
+}
+
+void
+PngWdgt::drawLeftRacketPhysics( ) {
+
+	int
+	i = 0;
+
+	double
+	o = mlp.output( 0 );
+
+	painter->fillRect(
+		static_cast< int >( arena2painter.u2s.x2y( -4.4 - 4. * i * pix ) ),
+		static_cast< int >( arena2painter.v2t.x2y( 0. ) ),
+		static_cast< int >( arena2painter.u2s.xLength( 3. * pix ) ),
+		static_cast< int >( arena2painter.v2t.xLength( 3. * o ) ),
+		QColor(
+			int( 0x4f * o ) & 0xff,
+			( 0xff - int( 0x4f * o ) ) & 0xff,
+			( 0xff - int( 0x4f * o ) ) & 0xff ) );
+
+	o = leftRacketVel;
+
+	painter->fillRect(
+		static_cast< int >( arena2painter.u2s.x2y( -4.4 - 4. * ++ i * pix ) ),
+		static_cast< int >( arena2painter.v2t.x2y( 0. ) ),
+		static_cast< int >( arena2painter.u2s.xLength( 3. * pix ) ),
+		static_cast< int >( arena2painter.v2t.xLength( 3. * o ) ),
+		QColor(
+			int( 0x4f * o ) & 0xff,
+			( 0xff - int( 0x4f * o ) ) & 0xff,
+			( 0xff - int( 0x4f * o ) ) & 0xff ) );
+
+	o = leftRacketPos;
+
+	painter->fillRect(
+		static_cast< int >( arena2painter.u2s.x2y( -4.4 - 4. * ++ i * pix ) ),
+		static_cast< int >( arena2painter.v2t.x2y( 0. ) ),
+		static_cast< int >( arena2painter.u2s.xLength( 3. * pix ) ),
+		static_cast< int >( arena2painter.v2t.xLength( 3. * o ) ),
+		QColor(
+			int( 0x4f * o ) & 0xff,
+			( 0xff - int( 0x4f * o ) ) & 0xff,
+			( 0xff - int( 0x4f * o ) ) & 0xff ) );
 }
 
 void
@@ -450,11 +575,12 @@ PngWdgt::drawArena( ) {
 void
 PngWdgt::refreshView( ) {
 
-	patternRacketPosAndBallsPosVel[ 0 ] = ( ballV.x( ) < 0 ? leftRacketPos : rightRacketPos[ 2 ] ) / 3.;
-	patternRacketPosAndBallsPosVel[ 1 ] = ballV.x( ) < 0 ? ball.x( ) / 4. : -ball.x( ) / 4.;
-	patternRacketPosAndBallsPosVel[ 2 ] = ball.y( ) / 3.;
-	patternRacketPosAndBallsPosVel[ 3 ] = 10 * ballV.x( );
-	patternRacketPosAndBallsPosVel[ 4 ] = 30 * ballV.y( );
+	patternRPyVyBPxyVxy[ 0 ] = ballV.x( ) < 0 ? leftRacketPos : rightRacketPos[ 2 ];
+	patternRPyVyBPxyVxy[ 1 ] = ballV.x( ) < 0 ? leftRacketVel : rightRacketVel[ 1 ];
+	patternRPyVyBPxyVxy[ 2 ] = ballV.x( ) < 0 ? ball.x( ) / 4. : -ball.x( ) / 4.;
+	patternRPyVyBPxyVxy[ 3 ] = ball.y( ) / 3.;
+	patternRPyVyBPxyVxy[ 4 ] = 10 * ballV.x( );
+	patternRPyVyBPxyVxy[ 5 ] = 30 * ballV.y( );
 }
 
 void
@@ -506,7 +632,7 @@ PngWdgt::paintEvent( QPaintEvent * p_paintEvent ) {
 
 		refreshView( );
 
-		mlp.remember( patternRacketPosAndBallsPosVel );
+		mlp.remember( patternRPyVyBPxyVxy );
 
 		mlp.teach( teacher );
 
@@ -515,18 +641,24 @@ PngWdgt::paintEvent( QPaintEvent * p_paintEvent ) {
 		drawOutput( );
 
 		drawTeacher( );
+
+		drawTeachersBase( );
 	}
 	else {
 
+		direction = -1;
+
+		leftRacketVel = 0;
+
 		refreshView( );
 
-		mlp.remember( patternRacketPosAndBallsPosVel );
+		mlp.remember( patternRPyVyBPxyVxy );
 
 		updateLeftRacketPos( );
 
 		drawPattern( );
 
-		drawOutput( );
+		drawLeftRacketPhysics( );
 	}
 
 	if( ball.x( ) > 4. - pix  && 0. < ballV.x( ) ) {
