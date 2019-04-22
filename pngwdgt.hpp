@@ -29,18 +29,15 @@ class MLP {
 	private:
 
 		double
-		act( double const & p_val ) const {
+		act( double const & p_x, double const & p_sigma = 1. ) const {
 
-			return mn + ( mx - mn ) / ( 1. + exp( - p_val ) );
+			return mn + ( mx - mn ) / ( 1. + exp( - p_x / p_sigma ) );
 		}
 
 		double
-		diffAct( double const & p_val ) const {
+		diffAct( double const & p_act, double const & p_sigma = 1. ) const {
 
-			double
-			a = ( p_val - mn ) / ( mx - mn );
-
-			return .0001 + a - a * a;
+			return .0001 * ( p_act - mn ) * ( mx - p_act ) / ( p_sigma * ( mx - mn ) );
 		}
 
 	public:
@@ -529,8 +526,8 @@ class LinearMap1D {
 		xMax( p_xMax ),
 		yMin( p_yMin ),
 		yMax( p_yMax ),
-		xDividedByY( ( xMax - xMin ) / ( yMax - yMin ) ),
-		yDividedByX( ( yMax - yMin ) / ( xMax - xMin ) ) {
+		dXBydY( ( xMax - xMin ) / ( yMax - yMin ) ),
+		dYBydX( ( yMax - yMin ) / ( xMax - xMin ) ) {
 
 		}
 
@@ -543,45 +540,45 @@ class LinearMap1D {
 	private:
 
 		double
-		xDividedByY,
-		yDividedByX;
+		dXBydY,
+		dYBydX;
 
 	public:
 
 		double
 		x2y( double const & p_x ) const {
 
-			return yMin + ( p_x - xMin ) * yDividedByX;
+			return yMin + yLen( p_x - xMin );
 		}
 
 		double
 		y2x( double const & p_y ) const {
 
-			return xMin + ( p_y - yMin ) * xDividedByY;
+			return xMin + xLen( p_y - yMin );
 		}
 
 		double
-		xDistance( double const & p_xMin, double const & p_XMax ) const {
+		yDist( double const & p_xMin, double const & p_xMax ) const {
 
-			return ( p_XMax - p_xMin ) * yDividedByX;
+			return yMin + yLen( p_xMax - p_xMin );
 		}
 
 		double
-		yDistance( double const & p_yMin, double const & p_yMax ) const {
+		xDist( double const & p_yMin, double const & p_yMax ) const {
 
-			return xMin + ( p_yMax - p_yMin ) * xDividedByY;
+			return xMin + xLen( p_yMax - p_yMin );
 		}
 
 		double
-		xLength( double const p_x ) const {
+		yLen( double const p_x ) const {
 
-			return p_x * yDividedByX;
+			return p_x * dYBydX;
 		}
 
 		double
-		yLength( double const & p_y ) const {
+		xLen( double const & p_y ) const {
 
-			return p_y * xDividedByY;
+			return p_y * dXBydY;
 		}
 
 		void
@@ -589,8 +586,8 @@ class LinearMap1D {
 
 			xMin = p_xMin;
 			xMax = p_xMax;
-			xDividedByY = ( xMax - xMin ) / ( yMax - yMin );
-			yDividedByX = ( yMax - yMin ) / ( xMax - xMin );
+			dXBydY = ( xMax - xMin ) / ( yMax - yMin );
+			dYBydX = ( yMax - yMin ) / ( xMax - xMin );
 		}
 
 		void
@@ -598,8 +595,8 @@ class LinearMap1D {
 
 			yMin = p_yMin;
 			yMax = p_yMax;
-			xDividedByY = ( xMax - xMin ) / ( yMax - yMin );
-			yDividedByX = ( yMax - yMin ) / ( xMax - xMin );
+			dXBydY = ( xMax - xMin ) / ( yMax - yMin );
+			dYBydX = ( yMax - yMin ) / ( xMax - xMin );
 		}
 
 		void
@@ -699,6 +696,229 @@ class Buffer {
 			return s;
 		}
 
+};
+
+template < typename T, std::size_t S, std::size_t L >
+class Memory {
+
+	public:
+
+		Memory( ) {
+
+		}
+
+	public:
+
+		T
+		x[ S * L ];
+
+	public:
+
+		void
+		clear( double const & p_val ) {
+
+			std::fill( x, x + S * L, p_val );
+		}
+
+		void
+		set( std::vector< T > const & p_values ) {
+
+			std::copy( p_values.cbegin( ), p_values.end( ), x );
+		}
+
+
+		void
+		set( std::initializer_list< T > const & p_values ) {
+
+			std::copy( p_values.begin( ), p_values.end( ), x );
+		}
+
+		void
+		set( T * const p_values ) {
+
+			std::copy( p_values, p_values + S, x );
+		}
+
+		void
+		set( std::size_t const & p_id, T const & p_value ) {
+
+			x[ p_id ] = p_value;
+		}
+
+		void
+		memorize( ) {
+
+			std::copy( x, x + S * ( L - 1 ), x + S );
+		}
+};
+
+class V2 {
+
+	public:
+
+		V2( double const & p_x, double const & p_y ) :
+		x( p_x ),
+		y( p_y ) {
+
+		}
+
+	public:
+
+		double
+		x,
+		y;
+
+	public:
+
+		V2
+		& operator =( QPointF const & p_pointf ) {
+
+			x = p_pointf.x( );
+			y = p_pointf.y( );
+
+			return * this;
+		}
+
+		V2
+		& operator +=( V2 const & p_pos ) {
+
+			x += p_pos.x;
+			y += p_pos.y;
+
+			return * this;
+		}
+
+		V2
+		& operator -= ( V2 const & p_pos ) {
+
+			x -= p_pos.x;
+			y -= p_pos.y;
+
+			return * this;
+		}
+
+		V2
+		& operator *= ( double const & p_val ) {
+
+			x *= p_val;
+			y *= p_val;
+
+			return * this;
+		}
+
+		V2
+		& operator /= ( double const & p_val ) {
+
+			x /= p_val;
+			y /= p_val;
+
+			return * this;
+		}
+
+		V2
+		operator + ( V2 const & p_pos ) const {
+
+			return V2( x + p_pos.x, y + p_pos.y );
+		}
+
+		V2
+		operator - ( V2 const & p_pos ) const {
+
+			return V2( x - p_pos.x, y - p_pos.y );
+		}
+
+		V2
+		operator * ( double const & p_val ) const {
+
+			return V2( x * p_val, y * p_val );
+		}
+
+		V2
+		operator / ( double const & p_val ) const {
+
+			return V2( x / p_val, y / p_val );
+		}
+
+	public:
+
+		double
+		distSqrTo( V2 const & p_pos ) const {
+
+			double
+			dx = p_pos.x - x,
+			dy = p_pos.y - y;
+
+			return dx * dx + dy + dy;
+		}
+
+		double
+		distTo( V2 const & p_pos ) const {
+
+			return sqrt( distSqrTo( p_pos ) );
+		}
+
+		QPointF
+		& copy2QPointF( QPointF & p_pointf ) {
+
+			p_pointf.rx( ) = x;
+			p_pointf.ry( ) = y;
+
+			return  p_pointf;
+		}
+};
+
+class Eye {
+
+	public:
+
+		Eye( V2 * const & p_pos, V2 * const & p_object, LinearMap1D const & p_real2Use = LinearMap1D( 0., 100, 1., 0 ) ) :
+		self( p_pos ),
+		object( p_object ),
+		real2Use( p_real2Use ) {
+
+		}
+
+	public:
+
+		V2
+		* self,
+		* object;
+
+		LinearMap1D
+		real2Use;
+
+	protected:
+
+		double
+		stimulusDirection( ) const {
+
+			return 2. / M_PI * atan2( object->x - self->x, object->y - self->y );
+		}
+
+		double
+		stimulusBrightness( ) const {
+
+			return .001 / self->distSqrTo( * object );
+		}
+};
+
+class View {
+
+	public:
+
+		double
+		topEye, //angles
+		bottomEye,
+		distX,
+		posY;
+
+	public:
+
+		View( ) :
+		leftAngle(  ) {
+
+
+		}
 };
 
 class PhysRecord {
@@ -805,7 +1025,6 @@ class PhysReproduce {
 		}
 };
 
-
 class PngWdgt :
 public QWidget {
 
@@ -848,13 +1067,15 @@ public QWidget {
 		plyrLeft,
 		plyrRight;
 
-		unsigned char
+		unsigned int
 		scoreLeft,
 		scoreRight;
 
 		std::vector< double >
-		teacher,
-		patternRPyVyBPxyVxy;
+		teacher;
+
+		Memory<	double, 4, 5 >
+		mem;
 
 		MLP
 		mlp;
@@ -903,7 +1124,10 @@ public QWidget {
 		updateLeftRacketPos( );
 
 		void
-		refreshView( );
+		refreshViewFromLeft( );
+
+		void
+		refreshViewFromRight( );
 
 		void
 		keyReleaseEvent( QKeyEvent * p_keyEvent );
