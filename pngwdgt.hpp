@@ -1,15 +1,16 @@
 #ifndef PNGWDGT_HPP
 #define PNGWDGT_HPP
 
-#include <math.h>
 #include <initializer_list>
 #include <iomanip>
 #include <iostream>
+#include <list>
+#include <math.h>
+#include <queue>
 #include <sstream>
 #include <vector>
-#include <queue>
 
-#include <QSound>
+#include <QSoundEffect>
 #include <QWidget>
 #include <QCloseEvent>
 #include <QPaintEvent>
@@ -18,178 +19,238 @@
 #include <QTimer>
 #include <QMouseEvent>
 #include <QResizeEvent>
+//#include "../AlgebraWithSTL/mlp.hpp"
+#include "../mlp/brain.hpp"
 
 namespace Ui {
 
 	class PngWdgt;
 }
+/*
+typedef double      D ;
+typedef Vec< D >    V;
+typedef Vec< V >    M;
+typedef Vec< M >    T;
+typedef std::size_t SZ;
 
-class MLP {
+class Brain {
 
 	private:
 
-		double
-		act( double const & p_x, double const & p_sigma = 1. ) const {
+		D
+		sgn(D const & p_value ) const {
 
-			return mn + ( mx - mn ) / ( 1. + exp( - p_x / p_sigma ) );
+			return p_value < 0 ? -1 : 0 < p_value ? +1 : 0;
 		}
 
-		double
-		diffAct( double const & p_act, double const & p_sigma = 1. ) const {
+		class Act {
 
-			return .0001 * ( p_act - mn ) * ( mx - p_act ) / ( p_sigma * ( mx - mn ) );
-		}
+			public:
+
+				D const mn, mx, sigma, sigma_reciprocal;
+
+				Act(D const & p_mn = 0., D const & p_mx = 1., D const & p_sigma = 1.) :
+				mn(p_mn),
+				mx(p_mx),
+				sigma(p_sigma),
+				sigma_reciprocal(1. / sigma) {}
+
+				D operator()(D const & p_net) const {
+
+//					return mn + (mx - mn) / (1. + exp(-p_net / sigma));
+					return mn + ( mx - mn ) / ( 1. + exp( - sigma_reciprocal * p_net ) );
+
+				}
+		};
+
+		class DiffAct : public Act {
+
+			public:
+
+				DiffAct(D const & p_mn = 0., D const & p_mx = 1., D const & p_sigma = 1.) :
+				Act(p_mn, p_mx, p_sigma) {
+
+				}
+
+				D operator()(D const & p_act) const {
+
+					return sigma_reciprocal * ( p_act - mn ) * ( mx - p_act ) / ( mx - mn );
+				}
+			};
 
 	public:
 
-		std::vector< std::size_t > const
+		Vec< SZ > const
 		layerSizes;
 
-		double
-		eta,
-		mn,
-		mx;
+		D eta;
 
-		std::vector< std::vector< double > >
-		o, //utput
-		d; //elta
+		Act
+		act;
 
-		std::vector< std::vector< std::vector< double > > >
-		w;
+		DiffAct
+		dact;
+
+		D  rndMin, rndMax;
+
+		SZ
+		seed,
+		number_of_inputs;
+
+		M
+		a_, //usgaenge
+		d_; //elta
+
+		T
+		w_; //eights
+
+		V const * e_; //ingaenge
+
+		Vec < T >
+		history; //istory
 
 		std::size_t
 		loop;
 
 	public:
 
-		MLP( std::vector< std::size_t > const & p_layerSizes, double const & p_eta = 1., double const & p_min = 0., double const & p_max = 1. ) :
-		layerSizes( p_layerSizes.begin( ), p_layerSizes.end( ) ),
-		eta( p_eta ),
-		mn( p_min ),
-		mx( p_max ) {
+		Brain(Vec< SZ > const & p_layerSizes, D const & p_eta = 1., D const & p_min = 0., D const & p_max = 1., D const & p_sigma = 1., D const & p_rndMin = -.5, D const & p_rndMax = +.5, SZ const & p_seed = std::time( nullptr )) :
+		layerSizes(p_layerSizes.cbegin() + 1, p_layerSizes.end()),
+		eta(p_eta),
+		act(p_min, p_max, p_sigma),
+		dact(p_min, p_max, p_sigma),
+		rndMin(p_rndMin),
+		rndMax(p_rndMax),
+		seed(p_seed),
+		number_of_inputs(*p_layerSizes.begin()),
+		e_(nullptr) {
 
-			configure( );
+			configure(seed);
 		}
 
-		MLP( std::initializer_list< std::size_t > const & p_layerSizes, double const & p_eta = 1., double const & p_min = 0., double const & p_max = 1. ) :
-		layerSizes( p_layerSizes.begin( ), p_layerSizes.end( ) ),
-		eta( p_eta ),
-		mn( p_min ),
-		mx( p_max ) {
+		Brain(std::initializer_list< SZ > const & p_layerSizes, D const & p_eta = 1., D const & p_min = 0., D const & p_max = 1., D const & p_sigma = 1., D const & p_rndMin = -.5, D const & p_rndMax = +.5, SZ const & p_seed = std::time( nullptr )) :
+		layerSizes(p_layerSizes.begin() + 1, p_layerSizes.end()),
+		eta(p_eta),
+		act(p_min, p_max, p_sigma),
+		dact(p_min, p_max, p_sigma),
+		rndMin(p_rndMin),
+		rndMax(p_rndMax),
+		seed(p_seed),
+		number_of_inputs(*p_layerSizes.begin()),
+		e_(nullptr) {
 
-			configure( );
-		}
-
-		static std::vector< double >
-		digitize( double const & p_x, std::size_t p_digits, double const & p_x0 = 0., double const & p_x1 = 1., double const & p_low = 0., double const & p_high = 1. ) {
-
-			double
-			x = ( p_x - p_x0 ) / ( p_x1 - p_x0 );
-
-			x =
-				x < 0
-					? 0
-					: 1 < x
-						? 1
-						: x;
-
-			std::vector< double >
-			bit( p_digits );
-
-			while ( 0 < p_digits ) {
-
-				-- p_digits;
-
-				if( x < .5 ) {
-
-					bit[ p_digits ] = p_low;
-				}
-				else {
-
-					bit[ p_digits ] = p_high;
-
-					x -= .5;
-				}
-
-				x *= 2;
-			}
-
-			return bit;
-		}
-
-		static double
-		analogize( std::vector< double > p_bits, double const & p_x0 = 0., double const & p_x1 = 1., double const & p_low = 0., double const & p_high = 1. ) {
-
-			double
-			ret = 0.,
-			sum = .5;
-
-			std::size_t
-			i = p_bits.size( );
-
-			while ( 0 < i ) {
-
-				ret +=
-					.5 * ( p_high - p_low ) < p_bits[ -- i ]
-						? sum
-						: 0.;
-				sum *= .5;
-			}
-
-			return p_x0 + ( p_x1 - p_x0 ) * ret;
+			configure(seed);
 		}
 
 		void
-		configure( ) {
+		configure(SZ const & p_seed) {
 
-			for( std::size_t i = 0; i < layerSizes.size( ); ++ i ) {
+			seed = p_seed;
 
-				o.push_back( std::vector< double >( layerSizes[ i ] ) );
+			srand(seed);
 
-				if( 1 < layerSizes.size( ) - i ) {
+			SZ lenLS = len(layerSizes);
 
-					o[ i ].push_back( 1. );
-				}
+			SZ
+			layer = 0,
+			owdt  = layerSizes[layer],
+			iwdt  = number_of_inputs + 1;
+
+			a_.push_back(V(owdt));
+			d_.push_back(V(owdt));
+			w_.push_back(rndMin + (rndMax - rndMin) * mrnd< D >(owdt, iwdt));
+
+			while(++ layer < lenLS) {
+
+				iwdt = owdt + 1;
+				owdt = layerSizes[layer];
+
+				a_.push_back(V(owdt));
+				d_.push_back(V(owdt));
+				w_.push_back(rndMin + (rndMax - rndMin) * mrnd< D >(owdt, iwdt));
 			}
-
-			for( std::size_t i = 1; i < layerSizes.size( ); ++ i ) {
-
-				d.push_back( std::vector< double >( o[ i ].size( ) ) );
-			}
-
-			d.push_back( std::vector< double >( o[ o.size( ) - 1 ].size( ) ) );
-
-			for( std::size_t i = 0; i < layerSizes.size( ) - 1; ++ i ) {
-
-				std::size_t
-				realNumberOfNeuoronsInLayer     = layerSizes[ i + 1 ],
-				realNumberOfNeuoronsInPrevLayer = layerSizes[ i ] + 1;
-
-				w.push_back( std::vector< std::vector< double > >( realNumberOfNeuoronsInLayer, std::vector< double >( realNumberOfNeuoronsInPrevLayer ) ) );
-			}
-
-			randomizeWeights( +0., +1. );
 		}
 
-		double
-		error( std::vector< double > const & p_teacher ) const {
+		void
+		remember(V const & p_input) {
 
-			std::size_t
-			lyr = layerSizes.size( ) - 1,
-			to  = layerSizes[ lyr ];
+			e_ = & p_input;
 
-			double
-			r = 0,
-			tmp;
+			V _o = * e_;
 
-			for( std::size_t i = 0; i < to; ++ i ) {
+			for(SZ layer = 0; layer < len(layerSizes); ++ layer) {
 
-				tmp = o[ lyr ][ i ] - p_teacher[ i ];
-
-				r += tmp * tmp;
+				_o.push_back(1.);
+				_o = trnsfrm(w_[layer] | _o, act);
+				a_[layer] = _o;
 			}
+		}
 
-			return r;
+//		static std::vector< double >
+//		digitize( double const & p_x, std::size_t p_digits, double const & p_x0 = 0., double const & p_x1 = 1., double const & p_low = 0., double const & p_high = 1. ) {
+
+//			double
+//			x = ( p_x - p_x0 ) / ( p_x1 - p_x0 );
+
+//			x =
+//				x < 0
+//					? 0
+//					: 1 < x
+//						? 1
+//						: x;
+
+//			std::vector< double >
+//			bit( p_digits );
+
+//			while ( 0 < p_digits ) {
+
+//				-- p_digits;
+
+//				if( x < .5 ) {
+
+//					bit[ p_digits ] = p_low;
+//				}
+//				else {
+
+//					bit[ p_digits ] = p_high;
+
+//					x -= .5;
+//				}
+
+//				x *= 2;
+//			}
+
+//			return bit;
+//		}
+
+//		static double
+//		analogize( std::vector< double > p_bits, double const & p_x0 = 0., double const & p_x1 = 1., double const & p_low = 0., double const & p_high = 1. ) {
+
+//			double
+//			ret = 0.,
+//			sum = .5;
+
+//			std::size_t
+//			i = p_bits.size( );
+
+//			while ( 0 < i ) {
+
+//				ret +=
+//					.5 * ( p_high - p_low ) < p_bits[ -- i ]
+//						? sum
+//						: 0.;
+//				sum *= .5;
+//			}
+
+//			return p_x0 + ( p_x1 - p_x0 ) * ret;
+//		}
+
+
+		D
+		error(V const & p_teacher) const {
+
+			V tmp = p_teacher - a_[len(a_) - 1];
+			return tmp | tmp;
 		}
 
 		struct ERROR {
@@ -277,13 +338,13 @@ class MLP {
 		std::vector< double > const
 		& input ( ) const {
 
-			return o[ 0 ];
+			return * e_;
 		}
 
 		double const
 		& input( std::size_t const & p_index ) const {
 
-			return o[ 0 ][ p_index ];
+			return (*e_)[ p_index ];
 		}
 
 		void
@@ -292,15 +353,15 @@ class MLP {
 			double
 			maxOut = 0.;
 
-			for ( std::size_t l = 0; l < w.size( ); ++ l ) {
+			for ( std::size_t l = 0; l < w_.size( ); ++ l ) {
 
-				for ( std::size_t r = 0; r < w[ l ].size( ); ++ r ) {
+				for ( std::size_t r = 0; r < w_[ l ].size( ); ++ r ) {
 
-					for ( std::size_t c = 0; c < w[ l ][ r ].size( ); ++ c ) {
+					for ( std::size_t c = 0; c < w_[ l ][ r ].size( ); ++ c ) {
 
-						if( maxOut < abs( w[ l ][ r ][ c ] ) ) {
+						if( maxOut < abs( w_[ l ][ r ][ c ] ) ) {
 
-							maxOut = abs( w[ l ][ r ][ c ] );
+							maxOut = abs( w_[ l ][ r ][ c ] );
 						}
 					}
 				}
@@ -311,16 +372,16 @@ class MLP {
 				return;
 			}
 
-			for ( std::size_t l = 0; l < w.size( ); ++ l ) {
+			for ( std::size_t l = 0; l < w_.size( ); ++ l ) {
 
-				for ( std::size_t r = 0; r < w[ l ].size( ); ++ r ) {
+				for ( std::size_t r = 0; r < w_[ l ].size( ); ++ r ) {
 
-					for ( std::size_t c = 0; c < w[ l ][ r ].size( ); ++ c ) {
+					for ( std::size_t c = 0; c < w_[ l ][ r ].size( ); ++ c ) {
 
-						if( maxOut < abs( w[ l ][ r ][ c ] ) ) {
+						//if( maxOut < abs( w[ l ][ r ][ c ] ) ) {
 
-							w[ l ][ r ][ c ] /= maxOut;
-						}
+							w_[ l ][ r ][ c ] /= maxOut;
+						//}
 					}
 				}
 			}
@@ -329,13 +390,13 @@ class MLP {
 		std::vector< double > const
 		& output( ) const {
 
-			return o[ o.size( ) - 1 ];
+			return a_[ a_.size( ) - 1 ];
 		}
 
 		double const
 		& output( std::size_t const & p_index ) const {
 
-			return o[ o.size( ) - 1 ][ p_index ];
+			return a_[a_.size( ) - 1][p_index];
 		}
 
 		std::string
@@ -385,138 +446,122 @@ class MLP {
 		}
 
 		void
-		randomizeWeights( double const & p_min = 0, double const & p_max = 1 ) {
+		randomizeWeights( double const & p_min = -1, double const & p_max = 1, SZ const & p_seed = std::time(nullptr) ) {
 
-			for( auto & mat : w )
+			history.resize( 0 );
+
+			seed = p_seed;
+
+			srand( seed );
+
+			for(auto & mat : w_)
+
+				for(auto & vec : mat)
+
+					for(auto & val : vec) {
+
+						val = p_min + ( p_max - p_min ) * random( ) / RAND_MAX;
+//						val = pow( .5 + .5 * random( ) / RAND_MAX, 5. );
+//						val = ( 1. * random( ) / RAND_MAX ) < .5 ? -val : val;
+					}
+
+			history.push_back(w_);
+		}
+
+		void
+		shake( double const & p_rndAmp = .5 ) {
+
+			srand( std::time( nullptr ) );
+
+			for( auto & mat : w_)
 
 				for( auto & vec : mat )
 
 					for( auto & val : vec )
 
-						val = p_min + ( p_max - p_min ) * random( ) / RAND_MAX;
+						val = val * ( 1 + p_rndAmp * ( 2. * random( ) / RAND_MAX - 1 ) );
+						//val = ( 1. * random( ) / RAND_MAX ) < p_rndAmp ? -val : val;
 
+			history.push_back(w_);
 		}
 
+//		void
+//		remember( std::vector< double > const & p_pattern ) {
+
+//			std::size_t
+//			layer = 0;
+
+//			for( std::size_t i = 0; i < layerSizes[ layer ]; ++ i ) {
+
+//				o[ layer ][ i ] = p_pattern[ i ];
+//			}
+
+//			while( layer + 1 < layerSizes.size( ) ) {
+
+//				for ( std::size_t i = 0; i < w[ layer ].size( ); ++ i ) {
+
+//					double
+//					sum = 0.;
+
+//					for ( std::size_t j = 0; j < o[ layer ].size( ); ++ j ) {
+
+//						sum += w[ layer ][ i ][ j ] * o[ layer ][ j ];
+//					}
+
+//					o[ layer + 1 ][ i ] = act( sum );
+//				}
+
+//				++ layer;
+//			}
+//		}
+
 		void
-		remember( std::vector< double > const & p_pattern ) {
+		teach(V const & p_teacher, D const & p_etaf = 1.) {
 
-			std::size_t
-			layer = 0;
+			remember(p_teacher);
 
-			for( std::size_t i = 0; i < layerSizes[ layer ]; ++ i ) {
+			SZ
+			layer = len(layerSizes);
 
-				o[ layer ][ i ] = p_pattern[ i ];
-			}
+			while(0 < 1 + -- layer) {
 
-			while( layer + 1 < layerSizes.size( ) ) {
+				V diffAct = trnsfrm(a_[layer], dact),
+				  err     = layer == len(layerSizes) - 1 ? (a_[layer] - p_teacher) : (d_[layer + 1] | w_[layer + 1]);
 
-				for ( std::size_t i = 0; i < w[ layer ].size( ); ++ i ) {
-
-					double
-					sum = 0.;
-
-					for ( std::size_t j = 0; j < o[ layer ].size( ); ++ j ) {
-
-						sum += w[ layer ][ i ][ j ] * o[ layer ][ j ];
-					}
-
-					o[ layer + 1 ][ i ] = act( sum );
-				}
-
-				++ layer;
-			}
-		}
-
-		void
-		teach( std::vector< double > const & p_teacher ) {
-
-			std::size_t
-			layer = layerSizes.size( ) - 1;
-
-			for( std::size_t i = 0; i < o[ layer ].size( ); ++ i ) {
-
-				d[ layer ][ i ] = o[ layer ][ i ] - p_teacher[ i ];
-			}
-
-			-- layer;
-
-			for( std::size_t i = 0; i < d[ layer ].size( ); ++ i ) {
-
-				d[ layer ][ i ] = diffAct( o[ layer + 1 ][ i ] ) * d[ layer + 1 ][ i ];
-			}
-
-			std::vector< double >
-			dXw( d[ layer - 1 ].size( ) );
-
-			double
-			sum = 0;
-
-			for( std::size_t i = 0; i < dXw.size( ); ++ i ) {
-
-				sum = 0;
-
-				for( std::size_t j = 0; j < d[ layer ].size( ); ++ j ) {
-
-					sum = d[ layer ][ j ] * w[ layer ][ j ][ i ];
-				}
-
-				dXw[ i ] = sum;
-			}
-
-			for( std::size_t i = 0; i < d[ layer - 1 ].size( ); ++ i ) {
-
-				d[ layer - 1 ][ i ] = diffAct( o[ layer ][ i ] ) * dXw[ i ];
-			}
-
-			-- layer;
-
-			while( 0 < layer ) {
-
-				std::vector< double >
-				dXw( d[ layer - 1 ].size( ) );
-
-				for( std::size_t i = 0; i < dXw.size( ); ++ i ) {
-
-					sum = 0;
-
-					for( std::size_t j = 0; j < d[ layer ].size( ) - 1; ++ j ) {
-
-						sum = d[ layer ][ j ] * w[ layer ][ j ][ i ];
-					}
-
-					dXw[ i ] = sum;
-				}
-
-				for( std::size_t i = 0; i < d[ layer - 1 ].size( ); ++ i ) {
-
-					d[ layer - 1 ][ i ] = diffAct( o[ layer ][ i ] ) * dXw[ i ];
-				}
-
-				-- layer;
+				if(layer<len(layerSizes) - 1) err.pop_back();
+				d_[layer] = diffAct * err;
 			}
 
 			double
 			e = eta;
 
-			layer = 0;
+			for(layer = 0; layer < len(layerSizes); ++ layer) {
 
-			for( ; layer < w.size( ); ++ layer ) {
+				V o_ = (layer == 0 ? * e_ : a_[layer - 1]);
+				o_.push_back(1.);
 
-				for( std::size_t i = 0; i < w[ layer ].size( ); ++ i ) {
+				M dW = d_[layer] ^ o_;
 
-					for( std::size_t j = 0; j < w[ layer ][ i ].size( ); ++ j ) {
+				w_[layer] -= e * dW;
 
-						w[ layer ][ i ][ j ] -= e * d[ layer ][ i ] * o[ layer ][ j ];
-					}
-				}
-
-				e *= .9;
+				e *= p_etaf;
 			}
 
 			++ loop;
+
+			if( loop % 1000 == 0 ) {
+
+				history.push_back(w_);
+			}
+		}
+
+		void
+		set_eta( double const & p_eta ) {
+
+			eta = p_eta;
 		}
 };
-
+*/
 class LinearMap1D {
 
 	public:
@@ -560,13 +605,13 @@ class LinearMap1D {
 		double
 		yDist( double const & p_xMin, double const & p_xMax ) const {
 
-			return yMin + yLen( p_xMax - p_xMin );
+			return yLen( p_xMax - p_xMin );
 		}
 
 		double
 		xDist( double const & p_yMin, double const & p_yMax ) const {
 
-			return xMin + xLen( p_yMax - p_yMin );
+			return xLen( p_yMax - p_yMin );
 		}
 
 		double
@@ -624,6 +669,7 @@ class LinearMap2D {
 		v2t;
 };
 
+/*
 template < typename T, std::size_t S >
 class Buffer {
 
@@ -697,66 +743,113 @@ class Buffer {
 		}
 
 };
+*/
 
-template < typename T, std::size_t S, std::size_t L >
 class Memory {
 
 	public:
 
-		Memory( ) {
+		Memory( std::size_t const & p_layerSize, std::size_t const & p_numOfLayers ) :
+		layerSize( p_layerSize ),
+		numOfLayers( p_numOfLayers ),
+		x( layerSize * numOfLayers ) {
 
 		}
+
+	private:
+
+		std::size_t const
+		layerSize,
+		numOfLayers;
 
 	public:
 
-		T
-		x[ S * L ];
+		std::vector< double >
+		x;
 
 	public:
 
 		void
-		clear( double const & p_val ) {
+		clear( double const & p_val = 0. ) {
 
-			std::fill( x, x + S * L, p_val );
+			std::fill( x.begin( ), x.end( ), p_val );
+		}
+
+		double
+		get( std::size_t const & p_id ) const {
+
+			return x[ p_id ];
+		}
+
+		double
+		get( std::size_t const & p_layerId, std::size_t const & p_posId ) const {
+
+			return x[ p_layerId * layerSize + p_posId ];
 		}
 
 		void
-		set( std::vector< T > const & p_values ) {
+		set( std::vector< double > const & p_values ) {
 
-			std::copy( p_values.cbegin( ), p_values.end( ), x );
-		}
-
-
-		void
-		set( std::initializer_list< T > const & p_values ) {
-
-			std::copy( p_values.begin( ), p_values.end( ), x );
+			std::copy( p_values.cbegin( ), p_values.end( ), x.begin( ) );
 		}
 
 		void
-		set( T * const p_values ) {
+		set( std::initializer_list< double > const & p_values ) {
 
-			std::copy( p_values, p_values + S, x );
+			std::copy( p_values.begin( ), p_values.end( ), x.begin() );
 		}
 
 		void
-		set( std::size_t const & p_id, T const & p_value ) {
+		set( double * const & p_values ) {
+
+			std::copy( p_values, p_values + layerSize, x.begin( ) );
+		}
+
+		void
+		set( std::size_t const & p_id, double const & p_value ) {
 
 			x[ p_id ] = p_value;
 		}
 
 		void
+		set( std::size_t const & p_layerId, std::size_t const & p_posId, double const & p_value ) {
+
+			x[ p_layerId * layerSize + p_posId ] = p_value;
+		}
+
+
+		std::size_t
+		width( ) const {
+
+			return layerSize;
+		}
+
+		std::size_t
+		height( ) const {
+
+			return numOfLayers;
+		}
+
+		std::size_t
+		size( ) const {
+
+			return x.size( );
+		}
+
+		void
 		memorize( ) {
 
-			std::copy( x, x + S * ( L - 1 ), x + S );
+			std::copy( x.cbegin( ), x.cbegin( ) + static_cast< int >( layerSize * ( numOfLayers - 1 ) ), x.begin( ) + static_cast< int >( layerSize ) );
 		}
 };
 
+
+template< typename T >
 class V2 {
 
 	public:
 
-		V2( double const & p_x, double const & p_y ) :
+		V2( T const & p_x, T const & p_y ) :
 		x( p_x ),
 		y( p_y ) {
 
@@ -764,13 +857,13 @@ class V2 {
 
 	public:
 
-		double
+		T
 		x,
 		y;
 
 	public:
 
-		V2
+		V2< T >
 		& operator =( QPointF const & p_pointf ) {
 
 			x = p_pointf.x( );
@@ -779,8 +872,8 @@ class V2 {
 			return * this;
 		}
 
-		V2
-		& operator +=( V2 const & p_pos ) {
+		V2< T >
+		& operator +=( V2< T > const & p_pos ) {
 
 			x += p_pos.x;
 			y += p_pos.y;
@@ -788,8 +881,8 @@ class V2 {
 			return * this;
 		}
 
-		V2
-		& operator -= ( V2 const & p_pos ) {
+		V2< T >
+		& operator -= ( V2< T > const & p_pos ) {
 
 			x -= p_pos.x;
 			y -= p_pos.y;
@@ -797,8 +890,8 @@ class V2 {
 			return * this;
 		}
 
-		V2
-		& operator *= ( double const & p_val ) {
+		V2< T >
+		& operator *= ( T const & p_val ) {
 
 			x *= p_val;
 			y *= p_val;
@@ -806,8 +899,8 @@ class V2 {
 			return * this;
 		}
 
-		V2
-		& operator /= ( double const & p_val ) {
+		V2< T >
+		& operator /= ( T const & p_val ) {
 
 			x /= p_val;
 			y /= p_val;
@@ -815,44 +908,44 @@ class V2 {
 			return * this;
 		}
 
-		V2
-		operator + ( V2 const & p_pos ) const {
+		V2< T >
+		operator + ( V2< T > const & p_pos ) const {
 
 			return V2( x + p_pos.x, y + p_pos.y );
 		}
 
-		V2
-		operator - ( V2 const & p_pos ) const {
+		V2< T >
+		operator - ( V2< T > const & p_pos ) const {
 
-			return V2( x - p_pos.x, y - p_pos.y );
+			return V2< T >( x - p_pos.x, y - p_pos.y );
 		}
 
-		V2
-		operator * ( double const & p_val ) const {
+		V2< T >
+		operator * ( T const & p_val ) const {
 
-			return V2( x * p_val, y * p_val );
+			return V2< T >( x * p_val, y * p_val );
 		}
 
-		V2
-		operator / ( double const & p_val ) const {
+		V2< T >
+		operator / ( T const & p_val ) const {
 
-			return V2( x / p_val, y / p_val );
+			return V2< T >( x / p_val, y / p_val );
 		}
 
 	public:
 
-		double
-		distSqrTo( V2 const & p_pos ) const {
+		T
+		distSqrTo( V2< T > const & p_pos ) const {
 
-			double
+			T
 			dx = p_pos.x - x,
 			dy = p_pos.y - y;
 
 			return dx * dx + dy + dy;
 		}
 
-		double
-		distTo( V2 const & p_pos ) const {
+		T
+		distTo( V2< T > const & p_pos ) const {
 
 			return sqrt( distSqrTo( p_pos ) );
 		}
@@ -867,38 +960,68 @@ class V2 {
 		}
 };
 
+typedef V2< int >    V2I;
+typedef V2< double > V2D;
+/*
 class Eye {
 
+
 	public:
 
-		Eye( V2 * const & p_pos, V2 * const & p_object, LinearMap1D const & p_real2Use = LinearMap1D( 0., 100, 1., 0 ) ) :
-		self( p_pos ),
-		object( p_object ),
-		real2Use( p_real2Use ) {
+		Eye( V2D * const & p_positionHead, V2D * const & p_positionObject ) :
+		head( p_positionHead ),
+		object( p_positionObject ) {
+
+		}
+
+		virtual
+		~Eye( ) {
 
 		}
 
 	public:
 
-		V2
-		* self,
+		V2D
+		* head,
 		* object;
 
-		LinearMap1D
-		real2Use;
+	public:
 
-	protected:
+		virtual double
+		stimulus( ) const = 0;
 
-		double
-		stimulusDirection( ) const {
+//			return
+//				yOff < 0
+//					? p_xDir < 0
+//						? 2. / M_PI * atan2( object->x - head->x, object->y - head->y - p_yOff )
+//						: 2. / M_PI * atan2( object->x - head->x, object->y - head->y - p_yOff )
+//					: 0 < p_xDir < 0
+//						? 2. / M_PI * atan2( object->x - head->x, object->y - head->y - p_yOff )
+//						: 2. / M_PI * atan2( object->x - head->x, object->y - head->y - p_yOff );
+};
 
-			return 2. / M_PI * atan2( object->x - self->x, object->y - self->y );
+class EyeLeftTop :
+public Eye {
+
+	public:
+
+		explicit
+		EyeLeftTop( V2D * const & p_positionHead, V2D * const & p_positionObject ) :
+		Eye( p_positionHead, p_positionObject ) {
+
 		}
 
-		double
-		stimulusBrightness( ) const {
+		virtual
+		~EyeLeftTop ( ) {
 
-			return .001 / self->distSqrTo( * object );
+		}
+
+	public:
+
+		double
+		stimulus( ) const {
+
+			return 2. / M_PI * atan2( object->x - head->x, head->y - object->y - 6. );
 		}
 };
 
@@ -1024,6 +1147,7 @@ class PhysReproduce {
 			dt = p_deltaTime;
 		}
 };
+*/
 
 class PngWdgt :
 public QWidget {
@@ -1052,11 +1176,11 @@ public QWidget {
 		QTime
 		time;
 
-		PhysRecord
-		rightPad;
+//		PhysRecord
+//		rightPad;
 
-		PhysReproduce
-		leftPad;
+//		PhysReproduce
+//		leftPad;
 
 		QTimer
 		timer;
@@ -1074,18 +1198,29 @@ public QWidget {
 		std::vector< double >
 		teacher;
 
-		Memory<	double, 4, 5 >
-		mem;
+		Memory
+		memLeft,
+		memRight;
 
-		MLP
-		mlp;
+		std::vector< double >
+		viewLeft,
+		viewRight;
+
+		Brain
+		brain;
 
 		double
+		vol,
 		pix,
-		racketHeight;
+		racketHeight,
+		posLeftRacket,
+		posRightRacket,
+		velLeftRacket,
+		velRightRacket,
+		accLeftRacket,
+		accRightRacket;
 
 		int
-		direction,
 		colOffR,
 		colOffG,
 		colOffB;
@@ -1093,8 +1228,17 @@ public QWidget {
 		QPainter
 		* painter;
 
+		std::size_t
+		historyFrame;
+
 		bool
 		teach;
+
+		std::map< std::string, QSoundEffect >
+		effects;
+
+		bool
+		paused;
 
 		void
 		drawSevenSegementDisplaySegment( const QRectF & p_rect, unsigned char p_segment, const QColor & p_color );
@@ -1103,7 +1247,7 @@ public QWidget {
 		drawSevenSegementDisplay ( QRectF const & p_rect, unsigned char p_digit, const QColor & p_color );
 
 		void
-		drawPattern( );
+		drawPatterns( );
 
 		void
 		drawPos( );
@@ -1118,10 +1262,13 @@ public QWidget {
 		drawRackets( );
 
 		void
-		drawOutput( );
+		drawLeftOutput( );
 
 		void
-		updateLeftRacketPos( );
+		drawRightOutput( );
+
+//		void
+//		updateLeftRacketPos( );
 
 		void
 		refreshViewFromLeft( );
@@ -1144,11 +1291,17 @@ public QWidget {
 		void
 		drawTeacher( );
 
-		void
-		drawTeachersBase( );
+//		void
+//		drawTeachersBase( );
+
+//		void
+//		drawLeftRacketPhysics( );
 
 		void
-		drawLeftRacketPhysics( );
+		drawHistory( );
+
+		void
+		drawWeights( );
 
 	public slots:
 

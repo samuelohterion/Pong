@@ -26,13 +26,16 @@ CONFIG += c++11
 
 SOURCES += \
 main.cpp \
-pngwdgt.cpp
+pngwdgt.cpp \
+    widgetsettings.cpp
 
 HEADERS += \
-pngwdgt.hpp
+pngwdgt.hpp \
+    widgetsettings.hpp
 
 FORMS += \
-pngwdgt.ui
+pngwdgt.ui \
+    widgetsettings.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
