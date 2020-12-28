@@ -19,7 +19,7 @@
 #include <QTimer>
 #include <QMouseEvent>
 #include <QResizeEvent>
-//#include "../AlgebraWithSTL/mlp.hpp"
+#include "../AlgebraWithSTL/algebra.hpp"
 #include "../mlp/brain.hpp"
 
 namespace Ui {
@@ -1208,6 +1208,9 @@ public QWidget {
 
 		Brain
 		brain;
+
+		alg::Tsr4< double >
+		history;
 
 		double
 		vol,
