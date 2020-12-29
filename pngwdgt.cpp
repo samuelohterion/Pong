@@ -29,7 +29,7 @@ scoreRight( 0 ),
 teacher( 1, 0. ),
 memLeft( 3, 3 ),
 memRight( 3, 3 ),
-brain( { 6, 18, 9, 1 }, .25, -1, 1., -1, +1 ),
+brain( { 6, 12, 8, 1 }, .5, -1, 1., -.5, +.5 ),
 vol( .5 ),
 pix( 1. / 30. ),
 racketHeight( 10. ),
@@ -722,13 +722,13 @@ PngWdgt::drawWeights( ) {
 	h = 2,
 	a = 0;
 
-	for( std::size_t lyr = 0; lyr < brain.layerSizes.size( ); ++ lyr ) {
+	for( std::size_t lyr = 0; lyr < brain.layer_sizes.size( ); ++ lyr ) {
 
-		a = brain.layerSizes[ lyr ];
+		a = brain.layer_sizes[ lyr ];
 
 		a +=
-			( lyr + 1 < brain.layerSizes.size( ) )
-				? ( lyr + 2 < brain.layerSizes.size( ) )
+			( lyr + 1 < brain.layer_sizes.size( ) )
+				? ( lyr + 2 < brain.layer_sizes.size( ) )
 					? 4
 					: 3
 				: 0;
@@ -805,11 +805,11 @@ PngWdgt::drawWeights( ) {
 			painter->drawEllipse( x - .5 * s * dx, y - .5 * s * dy, s * dx, s * dy );
 		}
 
-		a = brain.layerSizes[ lyr ];
+		a = brain.layer_sizes[ lyr ];
 
 		a +=
-			( lyr + 1 < brain.layerSizes.size( ) )
-				? ( lyr + 2 < brain.layerSizes.size( ) )
+			( lyr + 1 < brain.layer_sizes.size( ) )
+				? ( lyr + 2 < brain.layer_sizes.size( ) )
 					? 4
 					: 3
 				: 0;
@@ -845,7 +845,7 @@ void
 PngWdgt::drawHistory( ) {
 
 	historyFrame =
-		historyFrame + 1 < history.size( ) * 5 + 300
+		historyFrame + 1 < brain.history( ).size( ) * 5 + 300
 			? historyFrame + 1
 			: 0;
 
@@ -854,13 +854,13 @@ PngWdgt::drawHistory( ) {
 	h = 2,
 	a = 0;
 
-	for( std::size_t lyr = 0; lyr < brain.layerSizes.size( ); ++ lyr ) {
+	for( std::size_t lyr = 0; lyr < brain.layer_sizes.size( ); ++ lyr ) {
 
-		a = brain.layerSizes[ lyr ];
+		a = brain.layer_sizes[ lyr ];
 
 		a +=
-			( lyr + 1 < brain.layerSizes.size( ) )
-				? ( lyr + 2 < brain.layerSizes.size( ) )
+			( lyr + 1 < brain.layer_sizes.size( ) )
+				? ( lyr + 2 < brain.layer_sizes.size( ) )
 					? 4
 					: 3
 				: 0;
@@ -910,9 +910,9 @@ PngWdgt::drawHistory( ) {
 				double
 				x = arena2painter.u2s.x2y( weights2arena.u2s.x2y( xoff + ( ( lyr & 1 ) ? to : from ) ) ),
 				y = arena2painter.v2t.x2y( weights2arena.v2t.x2y( yoff + ( ( lyr & 1 ) ? from : to ) ) ),
-				f = clamp< double >( history[ historyFrame / 5 < history.size( )- 1 ? historyFrame / 5 : history.size( )- 1 ][ lyr ][ to ][ from ], -1, +1 ),
+				f = clamp< double >( brain.history( historyFrame / 5 < brain.history( ).size( )- 1 ? historyFrame / 5 : brain.history( ).size( )- 1 )[ lyr ][ to ][ from ], -1, +1 ),
 				c = .5 * ( 1 + f ),
-				s = 1. * ( 1. + abs( history[ historyFrame / 5 < history.size( )- 1 ? historyFrame / 5 : history.size( )- 1 ][ lyr ][ to ][ from ] ) );
+				s = 1. * ( 1. + abs( brain.history( historyFrame / 5 < brain.history( ).size( )- 1 ? historyFrame / 5 : brain.history( ).size( )- 1 )[ lyr ][ to ][ from ] ) );
 
 				col.setRgb( 0x7f * c, 0x40, 0x7f * ( 1 - c ), 0x40 );
 
@@ -937,11 +937,11 @@ PngWdgt::drawHistory( ) {
 			painter->drawEllipse( x - .5 * s * dx, y - .5 * s * dy, s * dx, s * dy );
 		}
 
-		a = brain.layerSizes[ lyr ];
+		a = brain.layer_sizes[ lyr ];
 
 		a +=
-			( lyr + 1 < brain.layerSizes.size( ) )
-				? ( lyr + 2 < brain.layerSizes.size( ) )
+			( lyr + 1 < brain.layer_sizes.size( ) )
+				? ( lyr + 2 < brain.layer_sizes.size( ) )
 					? 4
 					: 3
 				: 0;
@@ -1067,7 +1067,7 @@ PngWdgt::paintEvent( QPaintEvent * p_paintEvent ) {
 
 	plyrLeft.ry( ) = clamp< double >( 3. * posLeftRacket, -3., +3. );
 
-//	drawHistory( );
+	drawHistory( );
 
 	refreshViewFromRight( );
 
@@ -1075,7 +1075,7 @@ PngWdgt::paintEvent( QPaintEvent * p_paintEvent ) {
 
 	drawRightOutput( );
 
-	if( 0 < ballV.x( ) ) {
+	if( false || 0 < ballV.x( ) ) {
 
 		teacher[ 0 ] = accRightRacket;
 		brain.teach( teacher );
@@ -1225,7 +1225,7 @@ PngWdgt::keyReleaseEvent( QKeyEvent * p_keyEvent ) {
 
 	if( p_keyEvent->key() == Qt::Key_N ) {
 
-		history.resize( 0 );
+		//history.resize( 0 );
 
 		brain.randomizeWeights( -.5, +.5 );
 	}
@@ -1242,9 +1242,9 @@ PngWdgt::keyReleaseEvent( QKeyEvent * p_keyEvent ) {
 
 		ss << "brain";
 
-		for( std::size_t i = 0; i < brain.layerSizes.size( ); ++ i ) {
+		for( std::size_t i = 0; i < brain.layer_sizes.size( ); ++ i ) {
 
-			ss << "_" << brain.layerSizes[ i ];
+			ss << "_" << brain.layer_sizes[ i ];
 		}
 
 		ss << ".dat";
@@ -1255,9 +1255,9 @@ PngWdgt::keyReleaseEvent( QKeyEvent * p_keyEvent ) {
 
 		ss << ".history";
 
-		alg::save( ss.str( ), history );
+		alg::save( ss.str( ), brain.history( ) );
 
-		alg::print( "saved history:", history);
+		alg::print( "saved history:", brain.history( ));
 	}
 
 	if( p_keyEvent->key( ) == Qt::Key_L ) {
@@ -1267,9 +1267,9 @@ PngWdgt::keyReleaseEvent( QKeyEvent * p_keyEvent ) {
 
 		ss << "brain";
 
-		for( std::size_t i = 0; i < brain.layerSizes.size( ); ++ i ) {
+		for( std::size_t i = 0; i < brain.layer_sizes.size( ); ++ i ) {
 
-			ss << "_" << brain.layerSizes[ i ];
+			ss << "_" << brain.layer_sizes[ i ];
 		}
 
 		ss << ".dat";
@@ -1285,13 +1285,13 @@ PngWdgt::keyReleaseEvent( QKeyEvent * p_keyEvent ) {
 
 		ss << ".history";
 
-		if( ! alg::load( ss.str( ), history ) ) {
+		if( ! alg::load( ss.str( ), brain.history( ) ) ) {
 
 			std::cout << "file not found." << std::endl;
 		}
 		else  {
 
-			std::cout << "history:" << std::endl << history << std::endl;
+			std::cout << "history:" << std::endl << brain.history( ) << std::endl;
 		}
 	}
 }

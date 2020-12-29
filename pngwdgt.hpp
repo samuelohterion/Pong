@@ -1209,8 +1209,8 @@ public QWidget {
 		Brain
 		brain;
 
-		alg::Tsr4< double >
-		history;
+//		alg::Tsr4< double >
+//		history;
 
 		double
 		vol,
