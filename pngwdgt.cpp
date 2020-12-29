@@ -39,9 +39,9 @@ accLeftRacket( 0. ),
 accRightRacket( 0. ),
 paused( true ) {
 
-	effects["goal"].setSource( QUrl::fromLocalFile("../pong/sounds/goal.wav" ));
-	effects["wall"].setSource( QUrl::fromLocalFile("../pong/sounds/wall.wav" ));
-	effects["pad"].setSource( QUrl::fromLocalFile("../pong/sounds/pad.wav" ));
+	effects["goal"].setSource( QUrl::fromLocalFile("../Pong/sounds/goal.wav" ));
+	effects["wall"].setSource( QUrl::fromLocalFile("../Pong/sounds/wall.wav" ));
+	effects["pad"].setSource( QUrl::fromLocalFile("../Pong/sounds/pad.wav" ));
 
 	srand( std::time( nullptr ) );
 
