@@ -20,7 +20,7 @@
 #include <QMouseEvent>
 #include <QResizeEvent>
 #include "../AlgebraWithSTL/algebra.hpp"
-#include "../mlp/brain.hpp"
+#include "../Brain/brain.hpp"
 
 namespace Ui {
 
