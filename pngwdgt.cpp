@@ -29,7 +29,7 @@ scoreRight( 0 ),
 teacher( 1, 0. ),
 memLeft( 3, 3 ),
 memRight( 3, 3 ),
-brain( { 6, 1 }, .5, -1, 1., -.5, +.5, 1, 1000 ),
+brain( { 6, 6, 1 }, .7, -1, 1., -1., +1., 1, 1000 ),
 vol( .5 ),
 pix( 1. / 30. ),
 racketHeight( 10. ),
@@ -658,9 +658,6 @@ PngWdgt::drawArena( ) {
 	drawSevenSegementDisplay( QRectF( +.8, -2.7, .2, .3 ), scoreLeft % 10, QColor( 200 + 10 * colOffR, 200 + 10 * colOffG, 200 + 10 * colOffB ) );
 }
 
-void
-PngWdgt::drawWeights( ) {
-
 /*
  * 9,6,8,4,1
  *                              o
@@ -716,131 +713,6 @@ PngWdgt::drawWeights( ) {
  * b = 0 + ( s0 + 1 ) + 3 + ( s2 + 1 ) + 2
  * h = 2 + ( s1 + 1 ) + 3 + ( s3 + 0 ) + 0
  */
-
-	std::size_t
-	b = 0,
-	h = 2,
-	a = 0;
-
-	for( std::size_t lyr = 0; lyr < brain.layer_sizes.size( ); ++ lyr ) {
-
-		a = brain.layer_sizes[ lyr ];
-
-		a +=
-			( lyr + 1 < brain.layer_sizes.size( ) )
-				? ( lyr + 2 < brain.layer_sizes.size( ) )
-					? 4
-					: 3
-				: 0;
-
-		if( lyr & 1 ) {
-
-			h += a;
-		}
-		else {
-
-			b += a;
-		}
-	}
-
-	std::size_t
-	dx   = ( width( ) / b ) < ( height( ) / h ) ?( width( ) / b ) : ( height( ) / h ),
-	dy   = dx;
-
-	dx *= .25;
-	dy *= .25;
-
-	LinearMap2D
-	weights2arena(
-		LinearMap1D(
-			-.5, b - .5,
-			-4, +4
-		),
-		LinearMap1D(
-			-.5, h - .5,
-			+3, -3
-		)
-	);
-
-	double
-	xoff = 0,
-	yoff = 2;
-
-	QColor
-	col( 0x7f, 0x7f, 0x7f, 0x2f );
-
-	for( std::size_t lyr = 0; lyr < brain.w.size( ); ++ lyr ) {
-
-		for( std::size_t to = 0; to < brain.w[ lyr ].size( ); ++ to ) {
-
-			for( std::size_t from = 0; from < brain.w[ lyr ][ to ].size( ); ++ from ) {
-
-				double
-				x = arena2painter.u2s.x2y( weights2arena.u2s.x2y( xoff + ( ( lyr & 1 ) ? to : from ) ) ),
-				y = arena2painter.v2t.x2y( weights2arena.v2t.x2y( yoff + ( ( lyr & 1 ) ? from : to ) ) ),
-				f = clamp< double >( brain.w[ lyr ][ to ][ from ], -1, +1 ),
-				c = .5 * ( 1 + f ),
-				s = 1. * ( 1. + abs( brain.w[ lyr ][ to ][ from ] ) );
-
-				col.setRgb( 0xff * c, 0x40 + 0xb0 * c, 0x80 , 0x40 )	;
-
-				painter->setPen( QColor( 0xff, 0xff, 0xff, 0x40) );
-				painter->fillRect( x - .5 * s * dx, y - .5 * s * dy, s * dx, s * dy, col );
-			}
-		}
-
-		for( std::size_t n = 0; n < brain.o[ lyr ].size( ); ++ n ) {
-
-			double
-			x = arena2painter.u2s.x2y( weights2arena.u2s.x2y( xoff + ( ( lyr & 1 ) ? -2. : n ) ) ),
-			y = arena2painter.v2t.x2y( weights2arena.v2t.x2y( yoff + ( ( lyr & 1 ) ? n : -2. ) ) ),
-			f = clamp< double >( brain.o[ lyr ][ n ], -1, +1 ),
-			c = .5 * ( 1 - f ),
-			s = 2. * ( .5 + abs( brain.o[ lyr ][ n ] ) );
-
-			col.setRgb( 0x80 + 0x7f * c, 0x80 + 0x7f * ( 1 - c ), 0x00, 0x60 )	;
-
-			painter->setPen( QColor( 0xff, 0xff, 0xff, 0x40) );
-			painter->setBrush( col );
-			painter->drawEllipse( x - .5 * s * dx, y - .5 * s * dy, s * dx, s * dy );
-		}
-
-		a = brain.layer_sizes[ lyr ];
-
-		a +=
-			( lyr + 1 < brain.layer_sizes.size( ) )
-				? ( lyr + 2 < brain.layer_sizes.size( ) )
-					? 4
-					: 3
-				: 0;
-
-		if( lyr & 1 ) {
-
-			yoff += a;
-		}
-		else {
-
-			xoff += a;
-		}
-	}
-
-	for( std::size_t n = 0; n < brain.o[ brain.o.size( ) ].size( ); ++ n ) {
-
-		double
-		x = arena2painter.u2s.x2y( weights2arena.u2s.x2y( xoff + ( ( brain.w.size( ) & 1 ) ? -1. : n ) ) ),
-		y = arena2painter.v2t.x2y( weights2arena.v2t.x2y( yoff + ( ( brain.w.size( ) & 1 ) ? n : -1. ) ) ),
-		f = clamp< double >( brain.o[ brain.w.size( ) ][ n ], -1, +1 ),
-		c = .5 * ( 1 - f ),
-		s = 2. * ( .5 + abs( brain.o[ brain.w.size( ) ][ n ] ) );
-
-		col.setRgb( 0x80 + 0x7f * c, 0x80 + 0x7f * ( 1 - c ), 0x00, 0x60 );
-
-		painter->setPen( QColor( 0xff, 0xff, 0xff, 0x40) );
-		painter->setBrush( col );
-		painter->drawEllipse( x - .5 * s * dx, y - .5 * s * dy, s * dx, s * dy );
-	}
-}
-
 void
 PngWdgt::drawHistory( ) {
 
@@ -914,9 +786,9 @@ PngWdgt::drawHistory( ) {
 				c = .5 * ( 1 + f ),
 				s = 1. * ( 1. + abs( brain.history( historyFrame / 5 < brain.history( ).size( )- 1 ? historyFrame / 5 : brain.history( ).size( )- 1 )[ lyr ][ to ][ from ] ) );
 
-				col.setRgb( 0x7f * c, 0x40, 0x7f * ( 1 - c ), 0x40 );
+				col.setRgb( 0x7f * c, 0x40, 0x7f * ( 1 - c ), 0x80 );
 
-				painter->setPen( QColor( 0xff, 0xff, 0xff, 0x40) );
+				painter->setPen( QColor( 0xff, 0xff, 0xff, 0x80) );
 				painter->fillRect( x - .5 * s * dx, y - .5 * s * dy, s * dx, s * dy, col );
 			}
 		}
@@ -1227,7 +1099,7 @@ PngWdgt::keyReleaseEvent( QKeyEvent * p_keyEvent ) {
 
 		//history.resize( 0 );
 
-		brain.randomizeWeights( -.5, +.5 );
+		brain.randomizeWeights( -1., +1. );
 	}
 
 	if( p_keyEvent->key() == Qt::Key_F ) {
