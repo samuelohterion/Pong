@@ -29,7 +29,7 @@ scoreRight( 0 ),
 teacher( 1, 0. ),
 memLeft( 3, 3 ),
 memRight( 3, 3 ),
-brain( { 6, 6, 1 }, .7, -1, 1., -1., +1., 1, 1000 ),
+brain( { 6, 12, 6, 1 }, .7, -1, 1., -1., +1., 3, 1000 ),
 vol( .5 ),
 pix( 1. / 30. ),
 racketHeight( 10. ),
@@ -808,7 +808,23 @@ PngWdgt::drawHistory( ) {
 			painter->setBrush( col );
 			painter->drawEllipse( x - .5 * s * dx, y - .5 * s * dy, s * dx, s * dy );
 		}
+/*
+		for( std::size_t n = 0; n < brain.o[ lyr ].size( ); ++ n ) {
 
+			double
+			x = arena2painter.u2s.x2y( weights2arena.u2s.x2y( xoff + ( ( lyr & 1 ) ? -2. : n ) ) ),
+			y = arena2painter.v2t.x2y( weights2arena.v2t.x2y( yoff + ( ( lyr & 1 ) ? n : -2. ) ) ),
+			f = clamp< double >( brain.o[ lyr ][ n ], -1, +1 ),
+			c = .5 * ( 1 - f ),
+			s = 2. * ( .5 + abs( brain.o[ lyr ][ n ] ) );
+
+			col.setRgb( 0x40 + 0x3f * c, 0x40 + 0x3f * ( 1 - c ), 0x40, 0x40 )	;
+
+			painter->setPen( QColor( 0xff, 0xff, 0xff, 0x40) );
+			painter->setBrush( col );
+			painter->drawEllipse( x - .5 * s * dx, y - .5 * s * dy, s * dx, s * dy );
+		}
+*/
 		a = brain.layer_sizes[ lyr ];
 
 		a +=
