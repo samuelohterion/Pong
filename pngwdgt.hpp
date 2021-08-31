@@ -1240,8 +1240,20 @@ public QWidget {
 		std::map< std::string, QSoundEffect >
 		effects;
 
+		QueueSum< double >
+		errsum;
+
 		bool
 		paused;
+
+		double
+		speed,
+		speed_factor,
+		max_speed;
+
+		int
+		speed_count,
+		max_speed_count;
 
 		void
 		drawSevenSegementDisplaySegment( const QRectF & p_rect, unsigned char p_segment, const QColor & p_color );

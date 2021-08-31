@@ -1,3 +1,4 @@
+#include <QString>
 #include "pngwdgt.hpp"
 #include "ui_pngwdgt.h"
 //#include "../AlgebraWithSTL/algebra.hpp"
@@ -16,6 +17,8 @@ clamp( T const & p_A, T const & p_LOW, T const & p_HIGH ) {
 				: p_HIGH;
 }
 
+double rnd() {return static_cast< double >(rand( )) / RAND_MAX;}
+
 PngWdgt::PngWdgt( QWidget * parent ) :
 QWidget( parent ),
 ui( new Ui::PngWdgt ),
@@ -29,15 +32,21 @@ scoreRight( 0 ),
 teacher( 1, 0. ),
 memLeft( 3, 3 ),
 memRight( 3, 3 ),
-brain( { 6, 13, 5, 3, 1 }, 5., -1, 1., -1., +1., 2, 1000 ),
-vol( .5 ),
+brain( { 6, 36, 18, 3, 1 }, .25, 1e10, .75, -1., +1., -1, +1, 1, 1000 ),
+vol( .25 ),
 pix( 1. / 30. ),
 racketHeight( 10. ),
 velLeftRacket( 0. ),
 velRightRacket( 0. ),
 accLeftRacket( 0. ),
 accRightRacket( 0. ),
-paused( true ) {
+errsum(90),
+paused( true ),
+speed(0.1),
+speed_factor(1.1),
+max_speed(1),
+speed_count(0),
+max_speed_count(4) {
 
 	effects["goal"].setSource( QUrl::fromLocalFile("../Pong/sounds/goal.wav" ));
 	effects["wall"].setSource( QUrl::fromLocalFile("../Pong/sounds/wall.wav" ));
@@ -871,23 +880,25 @@ PngWdgt::refreshViewFromLeft( ) {
 	memLeft.memorize( );
 
 	double
-	distX = -( ball.x( ) - plyrLeft.x( ) ) / 8.,
-	distY = ( ball.y( ) - plyrLeft.y( ) ) / 6.,
+//	distX = -( ball.x( ) - plyrLeft.x( ) ) / 8.,
+//	distY = ( ball.y( ) - plyrLeft.y( ) ) / 6.,
+	distX = -ball.x( ) / 4.,
+	distY = ball.y( ) / 3.,
 	posY  = plyrLeft.y( ) / 3.;
 
 	memLeft.set( { distX, distY, posY } );
 
-	viewLeft.resize( 6,	0 );
+	viewLeft.resize( 6, 0 );
 
 	for( int i = 0; i < 3; ++ i ) {
 		int
 		j = 2 * i;
 		viewLeft[ j + 0 ] = memLeft.get( 0, i );
-		viewLeft[ j + 1 ] = clamp< double >( 2.5 * ( memLeft.get( 0, i ) - memLeft.get( 1, i ) ), -2.5, +2.5 );
+		viewLeft[ j + 1 ] = clamp< double >( 12.5 * ( memLeft.get( 0, i ) - memLeft.get( 1, i ) ), -12.5, +12.5 );
 	}
 
 	posLeftRacket = viewLeft[ 4 + 0 ];
-	velLeftRacket = .4 * viewLeft[ 4 + 1 ];
+	velLeftRacket = .2 * .4 * viewLeft[ 4 + 1 ];
 //	accLeftRacket = clamp< double >( ( memLeft.get( 0, 2 ) - 2 * memLeft.get( 1, 2 ) + memLeft.get( 2, 2 ) ), -4., +4. );
 }
 
@@ -897,8 +908,10 @@ PngWdgt::refreshViewFromRight( ) {
 	memRight.memorize( );
 
 	double
-	distX = ( ball.x( ) - plyrRight.x( ) ) / 8.,
-	distY = ( ball.y( ) - plyrRight.y( ) ) / 6.,
+//	distX = ( ball.x( ) - plyrRight.x( ) ) / 8.,
+//	distY = ( ball.y( ) - plyrRight.y( ) ) / 6.,
+	distX = ball.x( ) / 4.,
+	distY = ball.y( ) / 3.,
 	posY  = plyrRight.y( ) / 3.;
 
 	memRight.set( { distX, distY, posY } );
@@ -909,11 +922,11 @@ PngWdgt::refreshViewFromRight( ) {
 		int
 		j = 2 * i;
 		viewRight[ j + 0 ] = memRight.get( 0, i );
-		viewRight[ j + 1 ] = clamp< double >( 2.5 * ( memRight.get( 0, i ) - memRight.get( 1, i ) ), -2.5, +2.5 );
+		viewRight[ j + 1 ] = clamp< double >( 12.5 * ( memRight.get( 0, i ) - memRight.get( 1, i ) ), -12.5, +12.5 );
 	}
 
 	posRightRacket = viewRight[ 4 + 0 ];
-	velRightRacket = .4 * viewRight[ 4 + 1 ];
+	velRightRacket = .2 * .4 * viewRight[ 4 + 1 ];
 	accRightRacket = clamp< double >( 1. * ( memRight.get( 0, 2 ) - 2 * memRight.get( 1, 2 ) + memRight.get( 2, 2 ) ), -1., +1. );
 }
 
@@ -936,6 +949,7 @@ PngWdgt::paintEvent( QPaintEvent * p_paintEvent ) {
 	ball.ry( ) += ballV.y( );
 
 /*
+ *
 	if( ( mlp.loop % 10000 ) == 0 ) {
 
 		std::cout << "before norm:" << mlp.w << std::endl;
@@ -969,28 +983,45 @@ PngWdgt::paintEvent( QPaintEvent * p_paintEvent ) {
 
 	if(0 < ballV.x( ) && ball.x() < plyrRight.x()) {
 
-		teacher[0] = accRightRacket;
-		brain.teach( teacher );
-		drawTeacher( );
+		//if(rnd() < 1. / (1. + plyrRight.x() - ball.x())) {
+			teacher[0] = accRightRacket;
+			brain.eta0 = 2. * errsum.mean();
+			brain.teach( teacher );
+			errsum.add(brain.error(teacher));
+			drawTeacher( );
+		//}
 	}
 
-	if( ball.x( ) > 4. - pix && 0. < ballV.x( ) ) {
+	if(ballV.x( ) < 0. && ball.x() < plyrRight.x()) {
 
+		if(rnd() < 1.75) {
+			teacher[0] = accRightRacket;
+			brain.eta0 = 2. * errsum.mean();
+			brain.teach( teacher );
+			errsum.add(brain.error(teacher));
+			drawTeacher( );
+		}
+	}
+
+	if( ball.x() > 4. - pix && 0. < ballV.x()) {
+
+		speed = .05;
+		speed_count = 0;
 //		ballV = QPointF( -( .05 * rand( ) / RAND_MAX +.03 ), .04 * rand( ) / RAND_MAX - .02 );
 //		ball  = QPointF( 0, 5.8 * ( 1. * rand( ) / RAND_MAX - .5 ) );
-		double rnd = (1. * rand( ) / RAND_MAX);
-		std::cout << rnd << std::endl;
-		ballV = QPointF( -.03, .03 * (rnd < .5 ? +1. : -1));
-		ball  = QPointF( 3., 5.8 * ( 1. * rand( ) / RAND_MAX - .5 ) );
+		ballV = QPointF(-speed, .8 * speed * (rnd() - .5));
+		ball  = QPointF( 3., 5.8 * (rnd() - .5));
 		effects["goal"].setVolume(vol);
 		effects["goal"].play();
 		++ scoreRight;
 	}
 
-	if( ball.x( ) < -( 4. - pix ) && ballV.x( ) < 0. ) {
+	if( ball.x() < -(4. - pix) && ballV.x() < 0.) {
 
-		ballV = QPointF(+(.05 * rand() / RAND_MAX + .03), .04 * rand() / RAND_MAX - .02);
-		ball  = QPointF( -3., 5.8 * ( 1. * rand( ) / RAND_MAX - .5 ) );
+		speed = .05;
+		speed_count = 0;
+		ballV = QPointF(speed, .8 * speed * (rnd() - .5));
+		ball  = QPointF( -3., 5.8 * (rnd() - .5));
 //		double rnd = (1. * rand( ) / RAND_MAX);
 //		std::cout << rnd << std::endl;
 //		ballV = QPointF( .03, .03 * (rnd < .5 ? +1. : -1));
@@ -1020,6 +1051,12 @@ PngWdgt::paintEvent( QPaintEvent * p_paintEvent ) {
 		ball.y( ) < plyrRight.y( ) + ( racketHeight + 1 ) * pix &&
 		ball.y( ) > plyrRight.y( ) - ( racketHeight + 1 ) * pix ) {
 
+		if(max_speed_count <= ++ speed_count) {
+
+			speed_count = 0;
+			ballV *= speed_factor;
+		}
+
 		ballV = QPointF( -ballV.x( ), .1 * ( ball.y( ) - plyrRight.y( ) ) );
 //		ballV *= 1.05;
 
@@ -1033,6 +1070,12 @@ PngWdgt::paintEvent( QPaintEvent * p_paintEvent ) {
 		ball.y( ) < plyrLeft.y( ) + ( racketHeight + 1 ) * pix &&
 		ball.y( ) > plyrLeft.y( ) - ( racketHeight + 1 ) * pix ) {
 
+		if(max_speed_count <= ++ speed_count) {
+
+			speed_count = 0;
+			ballV *= speed_factor;
+		}
+
 		ballV = QPointF( -ballV.x( ), .1 * ( ball.y( ) - plyrLeft.y( ) ) );
 		//ballV *= 1.05;
 
@@ -1045,6 +1088,42 @@ PngWdgt::paintEvent( QPaintEvent * p_paintEvent ) {
 	drawRackets( );
 
 	drawPatterns( );
+
+	painter->setPen(QColor(0xff, 0xff,0xff));
+	painter->drawText(QPoint(0, 16), "Steps: " + QString::number(brain.step));
+	painter->drawText(QPoint(0, 32), "Error: " + QString::number(errsum.sum() / errsum.size()));
+	painter->drawText(QPoint(0, 48), "Eta:   " + QString::number(brain.eta));
+	//painter->drawText(QPoint(0, 64), "Dist:   " + QString::number(1. / (1. + plyrRight.x() - ball.x())));
+
+	LinearMap2D
+	lm2d(
+		LinearMap1D(0, errsum.size() - 1, arena2painter.u2s.yMax, arena2painter.u2s.yMin),
+		LinearMap1D(-.025, +.075, arena2painter.v2t.yMax, arena2painter.v2t.yMin)
+	);
+
+	painter->setPen(QColor(0x1f, 0x1f, 0x3f));
+	painter->drawLine(lm2d.u2s.x2y(0), lm2d.v2t.x2y(0), lm2d.u2s.x2y(errsum.size() - 1), lm2d.v2t.x2y(0));
+	if(0 < errsum.size()) {
+		double
+		x0 = lm2d.u2s.x2y(0),
+		y0 = lm2d.v2t.x2y(errsum.sum() / errsum.size()),
+		x1 = lm2d.u2s.x2y(errsum.size() - 1),
+		y1 = y0;
+
+		painter->setPen(QColor(0x2f, 0x2f, 0x2f));
+		painter->drawLine(x0, y0, x1, y1);
+
+		painter->setPen(QColor(0x4f, 0x2f, 0x1f));
+		for(std::size_t i = 0; i < errsum.size() - 1; ++ i) {
+
+			x0 = lm2d.u2s.x2y(i),
+			y0 = lm2d.v2t.x2y(errsum[i]),
+			x1 = lm2d.u2s.x2y(i + 1),
+			y1 = lm2d.v2t.x2y(errsum[i + 1]);
+
+			painter->drawLine(x0, y0, x1, y1);
+		}
+	}
 
 	delete painter;
 
@@ -1128,7 +1207,7 @@ PngWdgt::keyReleaseEvent( QKeyEvent * p_keyEvent ) {
 
 	if( p_keyEvent->key() == Qt::Key_N ) {
 
-		brain.randomizeWeights( -1., +1. );
+		brain.randomizeWeights();
 	}
 
 	if( p_keyEvent->key() == Qt::Key_F ) {
