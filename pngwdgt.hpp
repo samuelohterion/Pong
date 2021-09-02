@@ -1241,7 +1241,9 @@ public QWidget {
 		effects;
 
 		QueueSum< double >
-		errsum;
+		errsum,
+		errsum2,
+		etamem;
 
 		bool
 		paused;

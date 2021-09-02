@@ -32,7 +32,7 @@ scoreRight( 0 ),
 teacher( 1, 0. ),
 memLeft( 3, 3 ),
 memRight( 3, 3 ),
-brain( { 6, 36, 18, 3, 1 }, .25, 1e10, .75, -1., +1., -1, +1, 1, 1000 ),
+brain( { 6, 18, 18, 6, 1 }, .25, 1e10, .75, -1., +1., -1, +1, 1, 10000 ),
 vol( .25 ),
 pix( 1. / 30. ),
 racketHeight( 10. ),
@@ -40,7 +40,9 @@ velLeftRacket( 0. ),
 velRightRacket( 0. ),
 accLeftRacket( 0. ),
 accRightRacket( 0. ),
-errsum(90),
+errsum(300),
+errsum2(30),
+etamem(300),
 paused( true ),
 speed(0.1),
 speed_factor(1.1),
@@ -886,20 +888,18 @@ PngWdgt::refreshViewFromLeft( ) {
 	distY = ball.y( ) / 3.,
 	posY  = plyrLeft.y( ) / 3.;
 
-	memLeft.set( { distX, distY, posY } );
+	memLeft.set({posY, distX, distY});
 
 	viewLeft.resize( 6, 0 );
 
 	for( int i = 0; i < 3; ++ i ) {
-		int
-		j = 2 * i;
-		viewLeft[ j + 0 ] = memLeft.get( 0, i );
-		viewLeft[ j + 1 ] = clamp< double >( 12.5 * ( memLeft.get( 0, i ) - memLeft.get( 1, i ) ), -12.5, +12.5 );
+
+		viewLeft[ i ] = memLeft.get( 0, i );
+		viewLeft[ i + 3 ] = clamp< double >( 10. * ( memLeft.get( 0, i ) - memLeft.get( 1, i ) ), -200., +200.);
 	}
 
-	posLeftRacket = viewLeft[ 4 + 0 ];
-	velLeftRacket = .2 * .4 * viewLeft[ 4 + 1 ];
-//	accLeftRacket = clamp< double >( ( memLeft.get( 0, 2 ) - 2 * memLeft.get( 1, 2 ) + memLeft.get( 2, 2 ) ), -4., +4. );
+	posLeftRacket = viewLeft[0];
+	velLeftRacket = .1 * viewLeft[3];
 }
 
 void
@@ -908,26 +908,23 @@ PngWdgt::refreshViewFromRight( ) {
 	memRight.memorize( );
 
 	double
-//	distX = ( ball.x( ) - plyrRight.x( ) ) / 8.,
-//	distY = ( ball.y( ) - plyrRight.y( ) ) / 6.,
 	distX = ball.x( ) / 4.,
 	distY = ball.y( ) / 3.,
 	posY  = plyrRight.y( ) / 3.;
 
-	memRight.set( { distX, distY, posY } );
+	memRight.set({posY, distX, distY});
 
 	viewRight.resize( 6, 0 );
 
 	for( int i = 0; i < 3; ++ i ) {
-		int
-		j = 2 * i;
-		viewRight[ j + 0 ] = memRight.get( 0, i );
-		viewRight[ j + 1 ] = clamp< double >( 12.5 * ( memRight.get( 0, i ) - memRight.get( 1, i ) ), -12.5, +12.5 );
+
+		viewRight[ i ] = memRight.get( 0, i );
+		viewRight[ i + 3 ] = clamp< double >( 10. * ( memRight.get( 0, i ) - memRight.get( 1, i ) ), -200., +200. );
 	}
 
-	posRightRacket = viewRight[ 4 + 0 ];
-	velRightRacket = .2 * .4 * viewRight[ 4 + 1 ];
-	accRightRacket = clamp< double >( 1. * ( memRight.get( 0, 2 ) - 2 * memRight.get( 1, 2 ) + memRight.get( 2, 2 ) ), -1., +1. );
+	posRightRacket = viewRight[0];
+	velRightRacket = .1 * viewRight[3];
+	accRightRacket = clamp< double >( 1. * ( memRight.get( 0, 0 ) - 2 * memRight.get( 1, 0 ) + memRight.get( 2, 0 ) ), -1., +1. );
 }
 
 void
@@ -985,9 +982,11 @@ PngWdgt::paintEvent( QPaintEvent * p_paintEvent ) {
 
 		//if(rnd() < 1. / (1. + plyrRight.x() - ball.x())) {
 			teacher[0] = accRightRacket;
-			brain.eta0 = 2. * errsum.mean();
+			brain.eta0 = 100. * errsum.mean() * errsum2.mean();
+			etamem.add(brain.eta0);
 			brain.teach( teacher );
 			errsum.add(brain.error(teacher));
+			errsum2.add(brain.error(teacher));
 			drawTeacher( );
 		//}
 	}
@@ -996,9 +995,11 @@ PngWdgt::paintEvent( QPaintEvent * p_paintEvent ) {
 
 		if(rnd() < 1.75) {
 			teacher[0] = accRightRacket;
-			brain.eta0 = 2. * errsum.mean();
+			brain.eta0 = 100. * errsum.mean() * errsum2.mean();
+			etamem.add(brain.eta0);
 			brain.teach( teacher );
 			errsum.add(brain.error(teacher));
+			errsum2.add(brain.error(teacher));
 			drawTeacher( );
 		}
 	}
@@ -1090,9 +1091,10 @@ PngWdgt::paintEvent( QPaintEvent * p_paintEvent ) {
 	drawPatterns( );
 
 	painter->setPen(QColor(0xff, 0xff,0xff));
-	painter->drawText(QPoint(0, 16), "Steps: " + QString::number(brain.step));
-	painter->drawText(QPoint(0, 32), "Error: " + QString::number(errsum.sum() / errsum.size()));
-	painter->drawText(QPoint(0, 48), "Eta:   " + QString::number(brain.eta));
+	painter->drawText(QPoint(0, 16), "Steps:    " + QString::number(brain.step));
+	painter->drawText(QPoint(0, 32), "Error600: " + QString::number(errsum.mean()));
+	painter->drawText(QPoint(0, 48), "Error60:  " + QString::number(errsum2.mean()));
+	painter->drawText(QPoint(0, 64), "Eta:      " + QString::number(brain.eta));
 	//painter->drawText(QPoint(0, 64), "Dist:   " + QString::number(1. / (1. + plyrRight.x() - ball.x())));
 
 	LinearMap2D
@@ -1101,25 +1103,71 @@ PngWdgt::paintEvent( QPaintEvent * p_paintEvent ) {
 		LinearMap1D(-.025, +.075, arena2painter.v2t.yMax, arena2painter.v2t.yMin)
 	);
 
-	painter->setPen(QColor(0x1f, 0x1f, 0x3f));
+	painter->setPen(QColor(0x40, 0x40, 0x40));
 	painter->drawLine(lm2d.u2s.x2y(0), lm2d.v2t.x2y(0), lm2d.u2s.x2y(errsum.size() - 1), lm2d.v2t.x2y(0));
 	if(0 < errsum.size()) {
 		double
 		x0 = lm2d.u2s.x2y(0),
-		y0 = lm2d.v2t.x2y(errsum.sum() / errsum.size()),
+		y0 = lm2d.v2t.x2y(errsum.mean()),
 		x1 = lm2d.u2s.x2y(errsum.size() - 1),
 		y1 = y0;
 
-		painter->setPen(QColor(0x2f, 0x2f, 0x2f));
+		painter->setPen(QColor(0x30, 0x50, 0x30));
 		painter->drawLine(x0, y0, x1, y1);
 
-		painter->setPen(QColor(0x4f, 0x2f, 0x1f));
+		painter->setPen(QColor(0x3f, 0x5f, 0x3f));
 		for(std::size_t i = 0; i < errsum.size() - 1; ++ i) {
 
 			x0 = lm2d.u2s.x2y(i),
 			y0 = lm2d.v2t.x2y(errsum[i]),
 			x1 = lm2d.u2s.x2y(i + 1),
 			y1 = lm2d.v2t.x2y(errsum[i + 1]);
+
+			painter->drawLine(x0, y0, x1, y1);
+		}
+	}
+
+	lm2d.u2s.resetX(0, errsum2.size() - 1);
+	if(0 < errsum2.size()) {
+		double
+		x0 = lm2d.u2s.x2y(0),
+		y0 = lm2d.v2t.x2y(errsum2.mean()),
+		x1 = lm2d.u2s.x2y(errsum2.size() - 1),
+		y1 = y0;
+
+		painter->setPen(QColor(0x30, 0x30, 0x50));
+		painter->drawLine(x0, y0, x1, y1);
+
+		painter->setPen(QColor(0x3f, 0x3f, 0x5f));
+		for(std::size_t i = 0; i < errsum2.size() - 1; ++ i) {
+
+			x0 = lm2d.u2s.x2y(i),
+			y0 = lm2d.v2t.x2y(errsum2[i]),
+			x1 = lm2d.u2s.x2y(i + 1),
+			y1 = lm2d.v2t.x2y(errsum2[i + 1]);
+
+			painter->drawLine(x0, y0, x1, y1);
+		}
+	}
+
+	lm2d.u2s.resetX(0, etamem.size() - 1);
+	if(0 < etamem.size()) {
+		double
+		x0 = lm2d.u2s.x2y(0),
+		y0 = lm2d.v2t.x2y(etamem.mean()),
+		x1 = lm2d.u2s.x2y(etamem.size() - 1),
+		y1 = y0;
+
+		painter->setPen(QColor(0x50, 0x30, 0x30));
+		painter->drawLine(x0, y0, x1, y1);
+
+		painter->setPen(QColor(0x5f, 0x3f, 0x3f));
+		for(std::size_t i = 0; i < etamem.size() - 1; ++ i) {
+
+			x0 = lm2d.u2s.x2y(i),
+			y0 = lm2d.v2t.x2y(etamem[i]),
+			x1 = lm2d.u2s.x2y(i + 1),
+			y1 = lm2d.v2t.x2y(etamem[i + 1]);
 
 			painter->drawLine(x0, y0, x1, y1);
 		}
