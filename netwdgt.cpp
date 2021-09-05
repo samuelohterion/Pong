@@ -51,9 +51,9 @@ NetWdgt::paintEvent(QPaintEvent * p_paintEvent) {
 	y1  = rect.height() - .75 * dy;
 
 	switch (viewMode) {
-		case 0: {
+	case 0: {
 
-			for(alg::UI i = 0; i < design.size() - 1; ++ i) {
+		for(alg::UI i = 0; i < design.size() - 1; ++ i) {
 
 				y0 = y1;
 				y1 -= dy;
@@ -102,10 +102,10 @@ NetWdgt::paintEvent(QPaintEvent * p_paintEvent) {
 			}
 
 			break;
-		}
-		case 1: {
+	}
+	case 1: {
 
-			for(alg::UI i = 0; i < design.size() - 1; ++ i) {
+		for(alg::UI i = 0; i < design.size() - 1; ++ i) {
 
 				y0 = y1;
 				y1 -= dy;
@@ -153,8 +153,10 @@ NetWdgt::paintEvent(QPaintEvent * p_paintEvent) {
 					}
 				}
 			}
-		}
 	}
+	}
+
+	delete painter;
 }
 
 void
@@ -175,12 +177,12 @@ void
 NetWdgt::slotUpdateViewMode() {
 
 	viewMode = ui->radioButtonEQUIDISTANTVIEW->isChecked()
-		? 0
-		: ui->radioButtonDYNAMICVIEW->isChecked()
-			? 1
-			: ui->radioButtonMATRIXVIEW->isChecked()
-				? 2
-				: 3;
+	? 0
+	: ui->radioButtonDYNAMICVIEW->isChecked()
+	? 1
+	: ui->radioButtonMATRIXVIEW->isChecked()
+	? 2
+	: 3;
 	update();
 }
 

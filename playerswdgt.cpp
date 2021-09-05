@@ -68,9 +68,10 @@ PlayersWdgt::slotChangeLayerSize(int p_layerSize) {
 	if(0 < selectedLayer && selectedLayer < design.size() - 1) {
 
 		if(p_layerSize == 0) {
-			rem(design, selectedLayer);
+			design = remove(design, selectedLayer);
 			if(design.size() < 3) {
-				bool oldState = ui->spinBoxLAYERSIZE->blockSignals(true);
+				bool
+				oldState = ui->spinBoxLAYERSIZE->blockSignals(true);
 				ui->spinBoxLAYERSIZE->setValue(0);
 				ui->spinBoxLAYERSIZE->setEnabled(false);
 				ui->spinBoxLAYERSIZE->blockSignals(oldState);
@@ -86,9 +87,11 @@ PlayersWdgt::slotChangeLayerSize(int p_layerSize) {
 				if(selectedLayer == design.size() - 1) {
 					-- selectedLayer;
 				}
-				bool oldState = ui->spinBoxLAYERSIZE->blockSignals(true);
+				bool
+				oldState = ui->spinBoxLAYERSIZE->blockSignals(true);
 				ui->spinBoxLAYERSIZE->setValue(design[selectedLayer]);
 				ui->spinBoxLAYERSIZE->blockSignals(oldState);
+
 				oldState = ui->spinBoxLAYER->blockSignals(true);
 				ui->spinBoxLAYER->setValue(selectedLayer);
 				ui->spinBoxLAYER->blockSignals(oldState);
@@ -122,9 +125,23 @@ PlayersWdgt::slotLoadPlayer() {
 	name  = p.name;
 	emit signalColorChanged(color);
 
+	bool oldstate = ui->lineEditNAME->blockSignals(true);
 	ui->lineEditNAME->setText(name);
+	ui->lineEditNAME->blockSignals(oldstate);
 
-	emit signalDesignChanged(p.brain.layer_sizes);
+	design = p.brain.layer_sizes;
+
+	oldstate = ui->spinBoxLAYER->blockSignals(true);
+	ui->spinBoxLAYER->setRange(1, design.size());
+	ui->spinBoxLAYER->setValue(1);
+	ui->spinBoxLAYER->blockSignals(oldstate);
+
+	oldstate = ui->spinBoxLAYERSIZE->blockSignals(true);
+	ui->spinBoxLAYERSIZE->setEnabled(true);
+	ui->spinBoxLAYERSIZE->setValue(design[1]);
+	ui->spinBoxLAYERSIZE->blockSignals(oldstate);
+
+	emit signalDesignChanged(design);
 	emit signalLayerSelected(1);
 }
 
