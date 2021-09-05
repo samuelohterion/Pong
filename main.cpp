@@ -1,7 +1,8 @@
-#include "pngwdgt.hpp"
+//#include "pngwdgt.hpp"
 #include <QApplication>
 #include <math.h>
 #include "../AlgebraWithSTL/algebra.hpp"
+#include <mainwindow.hpp>
 
 int
 main( int p_argc, char * p_argv[ ] ) {
@@ -60,13 +61,24 @@ main( int p_argc, char * p_argv[ ] ) {
 
 */
 
+//	Brain b({3,2,1});
+
+//	alg::VU
+//	nd;
+
+//	nd = b.layer_sizes;
+
+//	alg::push_back(nd, 4UL);
+//	alg::push_front(nd, 1UL);
+
+
 	QApplication
 	app( p_argc, p_argv );
 
-	PngWdgt
-	wdgt;
+	MainWindow
+	mw;
 
-	wdgt.show( );
+	mw.show( );
 
 	return app.exec( );
 

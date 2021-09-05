@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>PONG AI</string>
+  </property>
+  <widget class="QWidget" name="centralwidget"/>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>800</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuControl">
+    <property name="title">
+     <string>&amp;Control</string>
+    </property>
+    <widget class="QMenu" name="menuEvent">
+     <property name="title">
+      <string>&amp;Event</string>
+     </property>
+     <addaction name="actionTraining"/>
+     <addaction name="actionCompetition"/>
+    </widget>
+    <addaction name="action_Player"/>
+    <addaction name="menuEvent"/>
+    <addaction name="separator"/>
+    <addaction name="action_Close"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>&amp;Help</string>
+    </property>
+    <addaction name="action_Info"/>
+    <addaction name="action_About"/>
+   </widget>
+   <addaction name="menuControl"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionNew">
+   <property name="text">
+    <string>&amp;New</string>
+   </property>
+  </action>
+  <action name="actionLoad">
+   <property name="text">
+    <string>&amp;Load</string>
+   </property>
+  </action>
+  <action name="actionSave">
+   <property name="text">
+    <string>&amp;Save</string>
+   </property>
+  </action>
+  <action name="actionTraining">
+   <property name="text">
+    <string>&amp;Training</string>
+   </property>
+  </action>
+  <action name="actionCompetition">
+   <property name="text">
+    <string>&amp;Competition</string>
+   </property>
+  </action>
+  <action name="actionE_xit">
+   <property name="text">
+    <string>&amp;Close</string>
+   </property>
+  </action>
+  <action name="action_Info">
+   <property name="text">
+    <string>&amp;Info</string>
+   </property>
+  </action>
+  <action name="action_About">
+   <property name="text">
+    <string>&amp;About</string>
+   </property>
+  </action>
+  <action name="actionS_ave_as">
+   <property name="text">
+    <string>S&amp;ave as</string>
+   </property>
+  </action>
+  <action name="actionE_xit_2">
+   <property name="text">
+    <string>E&amp;xit</string>
+   </property>
+  </action>
+  <action name="action_Close">
+   <property name="text">
+    <string>&amp;Close</string>
+   </property>
+  </action>
+  <action name="action_Player">
+   <property name="text">
+    <string>&amp;Player</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>action_Close</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

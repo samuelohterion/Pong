@@ -26,14 +26,25 @@ CONFIG += c++11
 
 SOURCES += \
 main.cpp \
+    mainwindow.cpp \
+    netwdgt.cpp \
+    player.cpp \
+    playerswdgt.cpp \
 pngwdgt.cpp \
     widgetsettings.cpp
 
 HEADERS += \
+    mainwindow.hpp \
+    netwdgt.hpp \
+    player.hpp \
+    playerswdgt.hpp \
 pngwdgt.hpp \
     widgetsettings.hpp
 
 FORMS += \
+    mainwindow.ui \
+    netwdgt.ui \
+    playerswdgt.ui \
 pngwdgt.ui \
     widgetsettings.ui
 
