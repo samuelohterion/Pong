@@ -17,6 +17,8 @@ clamp( T const & p_A, T const & p_LOW, T const & p_HIGH ) {
 				: p_HIGH;
 }
 
+
+
 double rnd() {return static_cast< double >(rand( )) / RAND_MAX;}
 
 PngWdgt::PngWdgt( QWidget * parent ) :
@@ -32,7 +34,7 @@ scoreRight( 0 ),
 teacher( 1, 0. ),
 memLeft( 3, 3 ),
 memRight( 3, 3 ),
-brain( { 6, 18, 18, 6, 1 }, .25, 1e10, .75, -1., +1., -1, +1, 1, 10000 ),
+brain( { 6, 42, 14, 7, 1 }, .25, 1e10, .75, -1., +1., -1, +1, 1, 10000 ),
 vol( .25 ),
 pix( 1. / 30. ),
 racketHeight( 10. ),
@@ -1058,7 +1060,12 @@ PngWdgt::paintEvent( QPaintEvent * p_paintEvent ) {
 			ballV *= speed_factor;
 		}
 
-		ballV = QPointF( -ballV.x( ), .1 * ( ball.y( ) - plyrRight.y( ) ) );
+		double
+		angle_ = 3. * (ball.y( ) - plyrRight.y( )),
+		speed_ = sqrt(ballV.x() * ballV.x() + ballV.y() * ballV.y()) ;
+
+		ballV = QPointF(-speed_ * cos(angle_), speed_ * sin(angle_));
+		//ballV = QPointF( -ballV.x( ), .1 * ( ball.y( ) - plyrRight.y( ) ) );
 //		ballV *= 1.05;
 
 		effects["pad"].setVolume(vol);
@@ -1077,7 +1084,11 @@ PngWdgt::paintEvent( QPaintEvent * p_paintEvent ) {
 			ballV *= speed_factor;
 		}
 
-		ballV = QPointF( -ballV.x( ), .1 * ( ball.y( ) - plyrLeft.y( ) ) );
+		double
+		angle_ = 3. * (ball.y( ) - plyrLeft.y( )),
+		speed_ = sqrt(ballV.x() * ballV.x() + ballV.y() * ballV.y()) ;
+
+		ballV = QPointF(speed_ * cos(angle_), speed_ * sin(angle_));
 		//ballV *= 1.05;
 
 		effects["pad"].setVolume(vol);

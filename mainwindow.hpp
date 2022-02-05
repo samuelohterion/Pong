@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include "playerswdgt.hpp"
+#include "pngwdgt.hpp"
 
 namespace Ui {
 	class MainWindow;
@@ -24,6 +25,8 @@ class MainWindow : public QMainWindow
 		PlayersWdgt
 		playersWdgt;
 
+		PngWdgt
+		pngWdgt;
 };
 
 #endif // MAINWINDOW_HPP
